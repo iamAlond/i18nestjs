@@ -5,7 +5,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
 	{
-		ignores: ['node_modules', '**/node_modules/**', '**/*.js', '**/*.d.ts']
+		ignores: ['node_modules', 'dist', 'coverage', '**/node_modules/**', '**/*.js', '**/*.d.ts']
 	},
 	eslint.configs.recommended,
 	...tseslint.configs.recommendedTypeChecked,
@@ -16,7 +16,7 @@ export default tseslint.config(
 				...globals.node,
 				...globals.jest
 			},
-			ecmaVersion: 5,
+			ecmaVersion: 2022,
 			sourceType: 'module',
 			parserOptions: {
 				projectService: true,

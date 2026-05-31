@@ -10,60 +10,69 @@ permissions:
   issues: write
 
 jobs:
-  issue-created:
-    name: Triage Issue On Creation
-    if: github.event.action == 'opened' || github.event.action == 'reopened'
+  triage:
+    name: Triage Issue
     runs-on: ubuntu-latest
     steps:
-      - name: Add "needs triage" label
-        uses: actions-cool/issues-helper@v3
+      - name: Triage issue
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
-          actions: "add-labels"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.issue.number }}
-          labels: "needs triage"
+          script: |
+            const { issue, label, action } = context.payload;
+            const hasLabel = name => issue.labels.some(l => l.name === name);
 
-  issue-labeled:
-    name: Triage Issue On Label
-    if: github.event.action == 'labeled'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Remove Triage Label
-        if: contains(github.event.issue.labels.*.name, 'needs triage') && github.event.label.name == 'in progress'
-        uses: actions-cool/issues-helper@v3
-        with:
-          actions: "remove-labels"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.issue.number }}
-          labels: "needs triage"
+            const removeLabel = async name => {
+              if (!hasLabel(name)) return;
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  name
+                });
+              } catch (e) {
+                if (e.status !== 404) throw e;
+              }
+            };
 
-      - name: Needs Repro
-        if: github.event.label.name == 'needs repro'
-        uses: actions-cool/issues-helper@v3
-        with:
-          actions: "create-comment, remove-labels"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.issue.number }}
-          body: |
-            Hello @${{ github.event.issue.user.login }}.
+            if (action === 'opened' || action === 'reopened') {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['needs triage']
+              });
+              return;
+            }
 
-            Please provide a [minimal reproduction](https://stackoverflow.com/help/minimal-reproducible-example) using a GitHub repository or StackBlitz.
+            if (action !== 'labeled') return;
 
-            This will help us to better understand the issue and provide a solution.
-          labels: "needs triage"
+            if (label.name === 'in progress') {
+              await removeLabel('needs triage');
+            }
 
-      - name: Wontfix
-        if: github.event.label.name == 'wontfix' && github.actor != 'github-actions[bot]'
-        uses: actions-cool/issues-helper@v3
-        with:
-          actions: "create-comment, close-issue"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.issue.number }}
-          body: |
-            Hello @${{ github.event.issue.user.login }}.
+            if (label.name === 'needs repro') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Hello @${issue.user.login}.\n\nPlease provide a [minimal reproduction](https://stackoverflow.com/help/minimal-reproducible-example) using a GitHub repository or StackBlitz.\n\nThis will help us to better understand the issue and provide a solution.`
+              });
+              await removeLabel('needs triage');
+            }
 
-            This is an automated message to let you know that we've triaged this issue and unfortunately, we will be closing it as "not planned".
-
-            We sometimes have to close good ideas (even great ones!) because our limited resources simply do not allow us to pursue all possible features and improvements, and when fixing bugs we have to balance the impact of the bug against the effort required for the fix. Before closing this we considered several factors such as the amount of work involved, the severity of the problem, the number of people affected, whether a workaround is available, and the ongoing cost of maintenance.
-
-            If you're seeing this message and believe you can contribute to this issue, please consider submitting a PR yourself.
+            if (label.name === 'wontfix' && context.actor !== 'github-actions[bot]') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Hello @${issue.user.login}.\n\nThis is an automated message to let you know that we've triaged this issue and unfortunately, we will be closing it as "not planned".\n\nWe sometimes have to close good ideas (even great ones!) because our limited resources simply do not allow us to pursue all possible features and improvements, and when fixing bugs we have to balance the impact of the bug against the effort required for the fix. Before closing this we considered several factors such as the amount of work involved, the severity of the problem, the number of people affected, whether a workaround is available, and the ongoing cost of maintenance.\n\nIf you're seeing this message and believe you can contribute to this issue, please consider submitting a PR yourself.`
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed',
+                state_reason: 'not_planned'
+              });
+            }

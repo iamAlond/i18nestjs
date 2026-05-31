@@ -1,6 +1,6 @@
 {
 	"compilerOptions": {
-		"types": ["node"],
+		"types": ["node", "jest"],
 		"module": "commonjs",
 		"declaration": true,
 		"noImplicitAny": false,
@@ -20,7 +20,7 @@
 		"forceConsistentCasingInFileNames": true,
 		"strictPropertyInitialization": false
 	},
-	"include": ["src/**/*.ts"],
+	"include": ["src/**/*.ts", "test/**/*.ts"],
 	"exclude": [
 		"node_modules"
 	]

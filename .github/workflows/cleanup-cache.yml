@@ -6,7 +6,7 @@ permissions:
 
 on:
   schedule:
-    - cron: "0 11 * * *"
+    - cron: '0 11 * * *'
   pull_request:
     types:
       - closed
@@ -16,31 +16,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Cleanup caches older than 7 days
         if: github.event_name == 'schedule'
-        uses: MyAlbum/purge-cache@v2
+        uses: MyAlbum/purge-cache@881eb5957687193fa612bf74c0042adc78ea5e54 # v2.2.0
 
       # https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows#force-deleting-cache-entries
       - name: Cleanup on PR close
         if: github.event_name == 'pull_request'
-        run: |
-          gh extension install actions/gh-actions-cache
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const ref = `refs/pull/${{ github.event.pull_request.number }}/merge`;
+            const { owner, repo } = context.repo;
 
-          REPO=${{ github.repository }}
-          BRANCH="refs/pull/${{ github.event.pull_request.number }}/merge"
+            const { data } = await github.request(
+              'GET /repos/{owner}/{repo}/actions/caches',
+              { owner, repo, ref, per_page: 100 }
+            );
 
-          echo "Fetching list of cache key"
-          cacheKeysForPR=$(gh actions-cache list -R $REPO -B $BRANCH -L 100 | cut -f 1 )
+            const caches = data.actions_caches ?? [];
+            console.log(`Found ${caches.length} cache(s) for ${ref}`);
 
-          ## Setting this to not fail the workflow while deleting cache keys.
-          set +e
-          echo "Deleting caches..."
-          for cacheKey in $cacheKeysForPR
-          do
-              gh actions-cache delete $cacheKey -R $REPO -B $BRANCH --confirm
-          done
-          echo "Done"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            for (const cache of caches) {
+              await github.request('DELETE /repos/{owner}/{repo}/actions/caches', {
+                owner,
+                repo,
+                key: cache.key,
+                ref: cache.ref
+              });
+              console.log(`Deleted cache: ${cache.key}`);
+            }

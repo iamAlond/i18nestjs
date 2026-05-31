@@ -7,7 +7,7 @@
 		"releaseName": "v${version}"
 	},
 	"hooks": {
-		"before:init": ["npx lint-staged"]
+		"before:init": ["pnpm exec lint-staged"]
 	},
 	"plugins": {
 		"@release-it/conventional-changelog": {

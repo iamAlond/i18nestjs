@@ -1,6 +1,6 @@
 {
 	"extends": [
-		"@commitlint/config-angular"
+		"@commitlint/config-conventional"
 	],
 	"rules": {
 		"subject-case": [
@@ -29,7 +29,7 @@
 				"revert",
 				"style",
 				"test",
-				"sample"
+				"types"
 			]
 		]
 	}

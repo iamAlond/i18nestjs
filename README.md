@@ -30,7 +30,7 @@ The project was inspired by the popular `nestjs-i18n` module, but with a major e
 
 ## Installation
 
-**Node.js 18.0.0 or newer is required.**
+**Node.js 22.0.0 or newer is required.**
 
 ```bash
 $ npm install @iamalond/nestjs-i18next
