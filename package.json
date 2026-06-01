@@ -1,6 +1,6 @@
 {
 	"name": "@iamalond/nestjs-i18next",
-	"version": "1.3.2",
+	"version": "1.3.3",
 	"description": "🌍 i18next module for NestJS",
 	"keywords": [
 		"nestjs",
