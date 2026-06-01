@@ -6,6 +6,9 @@
 		"release": true,
 		"releaseName": "v${version}"
 	},
+	"npm": {
+		"publish": false
+	},
 	"hooks": {
 		"before:init": ["pnpm exec lint-staged"]
 	},
