@@ -14,7 +14,7 @@ Usage:
 Options:
   -p, --path <dir>          Locales directory (e.g. ./i18n)      [required]
   -f, --fallback <locale>   Fallback/canonical locale            [default: en]
-  -o, --out <file>          Output file for generated types      [default: i18n.types.ts]
+  -o, --out <file>          Output file for generated types      [default: src/i18n.types.d.ts]
       --namespace-by-file   Match the runtime namespaceByFile option
   -h, --help                Show this help
 `;
@@ -25,7 +25,7 @@ function main(): void {
 		options: {
 			path: { type: 'string', short: 'p' },
 			fallback: { type: 'string', short: 'f', default: 'en' },
-			out: { type: 'string', short: 'o', default: 'i18n.types.ts' },
+			out: { type: 'string', short: 'o', default: 'src/i18n.types.d.ts' },
 			'namespace-by-file': { type: 'boolean', default: false },
 			help: { type: 'boolean', short: 'h', default: false }
 		}
@@ -82,7 +82,7 @@ function cmdTypes(fallback: Map<string, string>, out: string): void {
 
 	console.log(
 		`Generated types for ${fallback.size} key(s) -> ${target}\n` +
-			`Import it once (e.g. import './i18n.types') to enable typed t() calls.`
+			`The file is picked up automatically by tsc as long as it is inside your tsconfig include paths (default: src/).`
 	);
 }
 
