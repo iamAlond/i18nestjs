@@ -1,21 +1,9 @@
-import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { I18nModuleOptions } from '../src/options';
 import { I18nService } from '../src/service';
 import { JsonLoader } from '../src/loader';
-
-function createFixture(files: Record<string, Record<string, unknown>>): string {
-	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'i18nestjs-test-'));
-	for (const [locale, content] of Object.entries(files)) {
-		const localeDir = path.join(dir, locale);
-		fs.mkdirSync(localeDir, { recursive: true });
-		for (const [name, data] of Object.entries(content)) {
-			fs.writeFileSync(path.join(localeDir, name), JSON.stringify(data));
-		}
-	}
-	return dir;
-}
+import fs from 'node:fs';
+import { createFixture, removeFixture } from './helpers';
 
 function createService(localesPath: string, overrides: Partial<I18nModuleOptions> = {}) {
 	const options: I18nModuleOptions = {
@@ -51,7 +39,7 @@ describe('I18nService', () => {
 	});
 
 	afterEach(() => {
-		fs.rmSync(dir, { recursive: true, force: true });
+		removeFixture(dir);
 	});
 
 	it('translates with argument interpolation', () => {
@@ -117,7 +105,7 @@ describe('I18nService', () => {
 		const svc = createService(strictDir, { strict: true });
 		expect(() => svc.onModuleInit()).toThrow(/strict mode/);
 		expect(() => svc.onModuleInit()).toThrow(/"two"/);
-		fs.rmSync(strictDir, { recursive: true, force: true });
+		removeFixture(strictDir);
 	});
 
 	it('passes strict mode when all locales have all keys', () => {
@@ -127,7 +115,7 @@ describe('I18nService', () => {
 		});
 		const svc = createService(strictDir, { strict: true });
 		expect(() => svc.onModuleInit()).not.toThrow();
-		fs.rmSync(strictDir, { recursive: true, force: true });
+		removeFixture(strictDir);
 	});
 
 	it('supports namespaceByFile', () => {
@@ -137,7 +125,7 @@ describe('I18nService', () => {
 		const svc = createService(nsDir, { namespaceByFile: true });
 		svc.onModuleInit();
 		expect(svc.t('user.profile.name')).toBe('Name');
-		fs.rmSync(nsDir, { recursive: true, force: true });
+		removeFixture(nsDir);
 	});
 
 	it('exposes locales and raw messages', () => {
