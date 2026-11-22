@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.2.0](https://github.com/iamAlond/i18nestjs/compare/2.1.0...2.2.0) (2026-11-22)
+
+### Features
+
+* add i18n context and locale resolvers ([c0eb251](https://github.com/iamAlond/i18nestjs/commit/c0eb2515e9ea6bcac953bff9b3d965c14f6bb143))
+
+### Documentation
+
+* update readme ([fb24b4a](https://github.com/iamAlond/i18nestjs/commit/fb24b4a6ecd011ee290c439b4dc5f684dc181ba4))
+
+### Testing
+
+* **e2e:** add http e2e tests ([b16ffd9](https://github.com/iamAlond/i18nestjs/commit/b16ffd9e798b6d43f9d4e5149ad60882ed17f37d))
+
 ## [2.1.0](https://github.com/iamAlond/i18nestjs/compare/1.3.3...2.1.0) (2026-11-22)
 
 * **deps:** bump the github-actions group with 5 updates ([#37](https://github.com/iamAlond/i18nestjs/issues/37)) ([caeab6f](https://github.com/iamAlond/i18nestjs/commit/caeab6f51d8604b978ce6f06a9848ff3ac2fbfd1))
