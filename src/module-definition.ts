@@ -1,10 +1,10 @@
 import { ConfigurableModuleBuilder } from '@nestjs/common';
-import { I18nextModuleOptions } from './nestjs-i18next';
+import { I18nModuleOptions } from './options';
 
 export const { ConfigurableModuleClass, MODULE_OPTIONS_TOKEN } =
-	new ConfigurableModuleBuilder<I18nextModuleOptions>()
+	new ConfigurableModuleBuilder<I18nModuleOptions>()
 		.setClassMethodName('forRoot')
-		.setFactoryMethodName('createLibraryOptions')
+		.setFactoryMethodName('createI18nOptions')
 		.setExtras({ isGlobal: true }, (definition, extras) => ({
 			...definition,
 			global: extras.isGlobal
