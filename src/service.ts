@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { MessageCompiler } from './compiler';
+import { I18nContext } from './context';
 import { JsonLoader } from './loader';
 import { MODULE_OPTIONS_TOKEN } from './module-definition';
 import { I18nModuleOptions } from './options';
@@ -115,16 +116,14 @@ export class I18nService implements OnModuleInit {
 	 *
 	 * @example
 	 * i18n.t('hello', { name: 'World' })
-	 * i18n.t('items', { count: 3, locale: 'uk' })
+	 * i18n.t('items', { count: 3, locale: 'ru' })
 	 */
 	t<K extends I18nKey>(key: K, ...params: I18nCallParams<K>): string {
 		const options = (params[0] ?? {}) as I18nCallOptions<K> & I18nReservedOptions;
 		const { locale, defaultValue, debug, ...values } =
 			options as unknown as I18nReservedOptions & Record<string, I18nValue>;
 
-		const requested = normalizeLocale(
-			locale ?? this.options.defaultLocale ?? this.options.fallbackLanguage
-		);
+		const requested = this.resolveLocale(locale);
 
 		let message: string | undefined;
 		let messageLocale = requested;
@@ -153,6 +152,24 @@ export class I18nService implements OnModuleInit {
 		return this.compiler.format(message, messageLocale, values);
 	}
 
+	/** Effective locale for the current execution context. */
+	locale(): string {
+		return this.resolveLocale(undefined);
+	}
+
+	/**
+	 * Locale precedence: explicit `locale` argument → `I18nContext`
+	 * (request/bot-scoped) → `defaultLocale` → `fallbackLanguage`.
+	 */
+	private resolveLocale(locale?: string): string {
+		return normalizeLocale(
+			locale ??
+				I18nContext.locale() ??
+				this.options.defaultLocale ??
+				this.options.fallbackLanguage
+		);
+	}
+
 	private handleMissingKey(key: string, locale: string): string {
 		if (this.options.missingKey === 'throw') {
 			throw new Error(`Translation key "${key}" not found for locale "${locale}"`);
@@ -177,7 +194,7 @@ export class I18nService implements OnModuleInit {
 
 	/** Whether a key exists in the given locale's fallback chain. */
 	has(key: string, locale?: string): boolean {
-		const requested = normalizeLocale(locale ?? this.options.fallbackLanguage);
+		const requested = this.resolveLocale(locale);
 		return localeChain(
 			requested,
 			this.fallbacks,
@@ -190,8 +207,8 @@ export class I18nService implements OnModuleInit {
 	 * Returns a scoped view of this service bound to a fixed locale.
 	 *
 	 * @example
-	 * const uk = i18n.withLocale('uk');
-	 * uk.t('hello', { name: 'Світ' });
+	 * const ru = i18n.withLocale('ru');
+	 * ru.t('hello', { name: 'Мир' });
 	 */
 	withLocale(locale: string): I18nScopedService {
 		return new I18nScopedService(this, locale);

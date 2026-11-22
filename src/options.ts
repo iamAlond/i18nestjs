@@ -1,3 +1,5 @@
+import type { I18nResolver } from './resolvers';
+
 export type I18nMissingKeyMode = 'return-key' | 'throw';
 
 export interface I18nModuleOptions {
@@ -9,7 +11,7 @@ export interface I18nModuleOptions {
 	fallbackLanguage: string;
 	/**
 	 * Directory containing one subdirectory per locale
-	 * (e.g. `./i18n/en`, `./i18n/uk`). Each locale directory may contain
+	 * (e.g. `./i18n/en`, `./i18n/ru`). Each locale directory may contain
 	 * `.json` files in nested subfolders.
 	 */
 	localesPath: string;
@@ -51,6 +53,13 @@ export interface I18nModuleOptions {
 	 * itself, `'throw'` raises an error.
 	 */
 	missingKey?: I18nMissingKeyMode;
+	/**
+	 * Locale resolvers evaluated per request in order — the first one
+	 * returning a non-empty locale wins and is bound to `I18nContext`.
+	 * Built-ins: `HeaderResolver`, `QueryResolver`, `ParamResolver`,
+	 * `CookieResolver`. Implement `I18nResolver` for non-HTTP frameworks.
+	 */
+	resolvers?: I18nResolver[];
 	/** Enable informational logging. */
 	logging?: boolean;
 }

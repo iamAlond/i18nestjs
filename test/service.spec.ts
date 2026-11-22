@@ -28,11 +28,11 @@ describe('I18nService', () => {
 					onlyEn: 'English only'
 				}
 			},
-			uk: {
+			ru: {
 				'common.json': {
-					hello: 'Привіт {name}!',
-					items: '{count, plural, one {# річ} few {# речі} many {# речей} other {# речі}}',
-					nested: { deep: { bye: 'Бувай {name}' } }
+					hello: 'Привет {name}!',
+					items: '{count, plural, one {# вещь} few {# вещи} many {# вещей} other {# вещи}}',
+					nested: { deep: { bye: 'Пока {name}' } }
 				}
 			}
 		});
@@ -57,20 +57,20 @@ describe('I18nService', () => {
 	it('resolves locale per call', () => {
 		const svc = createService(dir);
 		svc.onModuleInit();
-		expect(svc.t('hello', { name: 'Світ', locale: 'uk' })).toBe('Привіт Світ!');
+		expect(svc.t('hello', { name: 'Мир', locale: 'ru' })).toBe('Привет Мир!');
 	});
 
 	it('applies CLDR plural rules for the message locale', () => {
 		const svc = createService(dir);
 		svc.onModuleInit();
 		expect(svc.t('items', { count: 1 })).toBe('1 item');
-		expect(svc.t('items', { count: 5, locale: 'uk' })).toBe('5 речей');
+		expect(svc.t('items', { count: 5, locale: 'ru' })).toBe('5 вещей');
 	});
 
 	it('falls back to fallbackLanguage for missing keys', () => {
 		const svc = createService(dir);
 		svc.onModuleInit();
-		expect(svc.t('onlyEn', { locale: 'uk' })).toBe('English only');
+		expect(svc.t('onlyEn', { locale: 'ru' })).toBe('English only');
 	});
 
 	it('returns the key for missing keys by default', () => {
@@ -131,17 +131,17 @@ describe('I18nService', () => {
 	it('exposes locales and raw messages', () => {
 		const svc = createService(dir);
 		svc.onModuleInit();
-		expect(svc.getLocales().sort()).toEqual(['en', 'uk']);
+		expect(svc.getLocales().sort()).toEqual(['en', 'ru']);
 		expect(svc.getMessage('en', 'hello')).toBe('Hello {name}!');
-		expect(svc.has('hello', 'uk')).toBe(true);
-		expect(svc.has('onlyEn', 'uk')).toBe(true); // via fallback
+		expect(svc.has('hello', 'ru')).toBe(true);
+		expect(svc.has('onlyEn', 'ru')).toBe(true); // via fallback
 	});
 
 	it('withLocale binds a locale for subsequent calls', () => {
 		const svc = createService(dir);
 		svc.onModuleInit();
-		const uk = svc.withLocale('uk');
-		expect(uk.t('hello', { name: 'Світ' })).toBe('Привіт Світ!');
+		const ru = svc.withLocale('ru');
+		expect(ru.t('hello', { name: 'Мир' })).toBe('Привет Мир!');
 	});
 
 	it('resolves keys through configured fallback chains', () => {

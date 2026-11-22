@@ -10,10 +10,10 @@ export const FIXTURE_FILES: Record<string, Record<string, unknown>> = {
 			onlyEn: 'English only'
 		}
 	},
-	uk: {
+	ru: {
 		'common.json': {
-			hello: 'Привіт {name}!',
-			items: '{count, plural, one {# річ} few {# речі} many {# речей} other {# речі}}'
+			hello: 'Привет {name}!',
+			items: '{count, plural, one {# вещь} few {# вещи} many {# вещей} other {# вещи}}'
 		}
 	}
 };

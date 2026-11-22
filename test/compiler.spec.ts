@@ -13,13 +13,13 @@ describe('MessageCompiler', () => {
 		expect(c.format(msg, 'en', { count: 5 })).toBe('5 items');
 	});
 
-	it('selects Ukrainian plural forms via CLDR rules', () => {
+	it('selects Russian plural forms via CLDR rules', () => {
 		const c = new MessageCompiler();
-		const msg = '{count, plural, one {# річ} few {# речі} many {# речей} other {# речі}}';
-		expect(c.format(msg, 'uk', { count: 1 })).toBe('1 річ');
-		expect(c.format(msg, 'uk', { count: 3 })).toBe('3 речі');
-		expect(c.format(msg, 'uk', { count: 5 })).toBe('5 речей');
-		expect(c.format(msg, 'uk', { count: 22 })).toBe('22 речі');
+		const msg = '{count, plural, one {# вещь} few {# вещи} many {# вещей} other {# вещи}}';
+		expect(c.format(msg, 'ru', { count: 1 })).toBe('1 вещь');
+		expect(c.format(msg, 'ru', { count: 3 })).toBe('3 вещи');
+		expect(c.format(msg, 'ru', { count: 5 })).toBe('5 вещей');
+		expect(c.format(msg, 'ru', { count: 22 })).toBe('22 вещи');
 	});
 
 	it('formats numbers and dates', () => {

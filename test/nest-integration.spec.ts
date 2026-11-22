@@ -38,7 +38,7 @@ describe('I18nModule (Nest DI integration)', () => {
 		const i18n = moduleRef.get(I18nService);
 
 		expect(i18n.t('hello', { name: 'World' })).toBe('Hello World!');
-		expect(i18n.t('hello', { name: 'Світ', locale: 'uk' })).toBe('Привіт Світ!');
+		expect(i18n.t('hello', { name: 'Мир', locale: 'ru' })).toBe('Привет Мир!');
 
 		await moduleRef.close();
 	});
@@ -66,13 +66,13 @@ describe('I18nModule (Nest DI integration)', () => {
 	it('supports forRootAsync with useFactory', async () => {
 		const moduleRef = await createModule([
 			I18nModule.forRootAsync({
-				useFactory: () => baseOptions({ defaultLocale: 'uk' })
+				useFactory: () => baseOptions({ defaultLocale: 'ru' })
 			})
 		]);
 		const i18n = moduleRef.get(I18nService);
 
-		// defaultLocale uk -> Ukrainian message without explicit locale
-		expect(i18n.t('hello', { name: 'Світ' })).toBe('Привіт Світ!');
+		// defaultLocale ru -> Russian message without explicit locale
+		expect(i18n.t('hello', { name: 'Мир' })).toBe('Привет Мир!');
 
 		await moduleRef.close();
 	});
