@@ -95,12 +95,34 @@ export class ParamResolver implements I18nResolver {
 	}
 }
 
-/** Resolves locale from a cookie. Requires cookie parsing upstream. */
+/** Cookie value from `req.cookies` (cookie-parser) or the raw `Cookie` header. */
+function cookieValue(request: Record<string, any>, name: string): string | undefined {
+	const fromParser = stringValue(request.cookies?.[name]);
+	if (fromParser) return fromParser;
+
+	const header = stringValue(request.headers?.cookie);
+	if (!header) return undefined;
+
+	for (const pair of header.split(';')) {
+		const eq = pair.indexOf('=');
+		if (eq === -1) continue;
+		if (pair.slice(0, eq).trim() === name) {
+			try {
+				return decodeURIComponent(pair.slice(eq + 1).trim()) || undefined;
+			} catch {
+				return pair.slice(eq + 1).trim() || undefined;
+			}
+		}
+	}
+	return undefined;
+}
+
+/** Resolves locale from a cookie — works with or without cookie-parser. */
 export class CookieResolver implements I18nResolver {
 	constructor(private readonly name: string) {}
 
 	resolve(context: ExecutionContext): string | undefined {
 		const request = httpRequest(context);
-		return request?.cookies ? stringValue(request.cookies[this.name]) : undefined;
+		return request ? cookieValue(request, this.name) : undefined;
 	}
 }

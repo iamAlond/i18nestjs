@@ -120,8 +120,15 @@ describe('CookieResolver', () => {
 		).toBe('ru');
 	});
 
-	it('returns undefined without a cookies object', () => {
+	it('returns undefined without cookies or a Cookie header', () => {
 		expect(new CookieResolver('i18n_lang').resolve(httpContext({}))).toBeUndefined();
+	});
+
+	it('parses the raw Cookie header without cookie-parser', () => {
+		const ctx = httpContext({
+			headers: { cookie: 'theme=dark; i18n_lang=ru-RU; other=1' }
+		});
+		expect(new CookieResolver('i18n_lang').resolve(ctx)).toBe('ru-RU');
 	});
 });
 

@@ -3,5 +3,6 @@ allowBuilds:
 overrides:
   'glob@>=9.0.0 <=14.0.1': 14.0.6
   'minimatch@>=7.0.0 <11.0.1': 11.0.9
+  'multer@>=2.0.0 <2.5.0': 2.5.0
 minimumReleaseAgeExclude:
   - release-it@21.1.3
