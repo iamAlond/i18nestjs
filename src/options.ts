@@ -30,6 +30,12 @@ export interface I18nModuleOptions {
 	 */
 	namespaceByFile?: boolean;
 	/**
+	 * Per-locale fallback chains, e.g. `{ 'de-AT': 'de', 'zh-CN': 'zh' }`.
+	 * Lookup order for `de-AT`: `de-AT` → `de` → `fallbackLanguage`.
+	 * Locale tags are canonicalized (`de-at`, `de_AT` match `de-AT`).
+	 */
+	fallbacks?: Record<string, string>;
+	/**
 	 * Locale used when a `t()` call does not specify `locale`.
 	 * Defaults to `fallbackLanguage`.
 	 */

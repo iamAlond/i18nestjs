@@ -3,6 +3,12 @@ import { parseArgs } from 'node:util';
 import fs from 'node:fs';
 import path from 'node:path';
 import { extractArgs, generateTypesDeclaration } from './generate';
+import {
+	explicitChain,
+	normalizeFallbacks,
+	normalizeLocale,
+	normalizeLocaleMessages
+} from './locales';
 import { scanLocales } from './scan';
 
 const USAGE = `i18nestjs — CLI for the i18nestjs NestJS i18n package
@@ -16,6 +22,7 @@ Options:
   -f, --fallback <locale>   Fallback/canonical locale            [default: en]
   -o, --out <file>          Output file for generated types      [default: src/i18n.types.d.ts]
       --namespace-by-file   Match the runtime namespaceByFile option
+      --fallbacks <json>    Fallback chains, e.g. '{"de-AT":"de"}'
   -h, --help                Show this help
 `;
 
@@ -27,6 +34,7 @@ function main(): void {
 			fallback: { type: 'string', short: 'f', default: 'en' },
 			out: { type: 'string', short: 'o', default: 'src/i18n.types.d.ts' },
 			'namespace-by-file': { type: 'boolean', default: false },
+			fallbacks: { type: 'string' },
 			help: { type: 'boolean', short: 'h', default: false }
 		}
 	});
@@ -44,12 +52,29 @@ function main(): void {
 		process.exit(1);
 	}
 
-	const locales = scanLocales(values.path, {
-		namespaceByFile: values['namespace-by-file'],
-		onWarn: message => console.warn(`warn: ${message}`)
-	});
+	const locales = normalizeLocaleMessages(
+		scanLocales(values.path, {
+			namespaceByFile: values['namespace-by-file'],
+			onWarn: message => console.warn(`warn: ${message}`)
+		}),
+		message => console.warn(`warn: ${message}`)
+	);
 
-	const fallback = locales.get(values.fallback);
+	let fallbacks: Record<string, string> | undefined;
+	if (values.fallbacks) {
+		try {
+			fallbacks = JSON.parse(values.fallbacks);
+		} catch {
+			console.error(
+				'Error: --fallbacks must be a valid JSON object, e.g. \'{"de-AT":"de"}\''
+			);
+			process.exit(1);
+		}
+	}
+	const fallbackMap = normalizeFallbacks(fallbacks);
+	const fallbackLocale = normalizeLocale(values.fallback);
+
+	const fallback = locales.get(fallbackLocale);
 	if (!fallback) {
 		console.error(
 			`Error: fallback locale "${values.fallback}" not found in ${values.path}. Available: ${
@@ -64,7 +89,7 @@ function main(): void {
 			cmdTypes(fallback, values.out);
 			break;
 		case 'validate':
-			process.exit(cmdValidate(locales, values.fallback, fallback));
+			process.exit(cmdValidate(locales, fallback, fallbackMap, fallbackLocale));
 			break;
 		default:
 			console.error(`Error: unknown command "${command}"\n`);
@@ -88,8 +113,9 @@ function cmdTypes(fallback: Map<string, string>, out: string): void {
 
 function cmdValidate(
 	locales: Map<string, Map<string, string>>,
-	fallbackLocale: string,
-	fallback: Map<string, string>
+	fallback: Map<string, string>,
+	fallbacks: Map<string, string>,
+	fallbackLocale: string
 ): number {
 	const errors: string[] = [];
 	const warnings: string[] = [];
@@ -97,7 +123,16 @@ function cmdValidate(
 	for (const [locale, messages] of locales) {
 		if (locale === fallbackLocale) continue;
 
-		const missing = [...fallback.keys()].filter(key => !messages.has(key));
+		// Keys covered by intermediate locales in the fallback chain count
+		// as translated; only the terminal fallbackLanguage does not.
+		const covered = new Set<string>();
+		for (const chainLocale of explicitChain(locale, fallbacks, fallbackLocale)) {
+			for (const key of locales.get(chainLocale)?.keys() ?? []) {
+				covered.add(key);
+			}
+		}
+
+		const missing = [...fallback.keys()].filter(key => !messages.has(key) && !covered.has(key));
 		const extra = [...messages.keys()].filter(key => !fallback.has(key));
 
 		for (const key of missing) {

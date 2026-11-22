@@ -144,6 +144,77 @@ describe('I18nService', () => {
 		expect(uk.t('hello', { name: 'Світ' })).toBe('Привіт Світ!');
 	});
 
+	it('resolves keys through configured fallback chains', () => {
+		const fbDir = createFixture({
+			en: { 'a.json': { greeting: 'Hello', onlyEn: 'English only' } },
+			de: { 'a.json': { greeting: 'Hallo' } },
+			'de-AT': { 'a.json': { greeting: 'Servus' } }
+		});
+		const svc = createService(fbDir, { fallbacks: { 'de-AT': 'de' } });
+		svc.onModuleInit();
+
+		// de-AT has greeting; onlyEn falls back de-AT → de → en
+		expect(svc.t('greeting', { locale: 'de-AT' })).toBe('Servus');
+		expect(svc.t('onlyEn', { locale: 'de-AT' })).toBe('English only');
+
+		removeFixture(fbDir);
+	});
+
+	it('intermediate fallback wins over terminal fallbackLanguage', () => {
+		const fbDir = createFixture({
+			en: { 'a.json': { key: 'EN' } },
+			de: { 'a.json': { key: 'DE' } },
+			'de-AT': { 'a.json': {} }
+		});
+		const svc = createService(fbDir, { fallbacks: { 'de-AT': 'de' } });
+		svc.onModuleInit();
+
+		expect(svc.t('key', { locale: 'de-AT' })).toBe('DE'); // not 'EN'
+
+		removeFixture(fbDir);
+	});
+
+	it('canonicalizes locale tags in options, dirs and fallbacks', () => {
+		const fbDir = createFixture({
+			en: { 'a.json': { key: 'EN' } },
+			de: { 'a.json': { key: 'DE' } },
+			'de-at': { 'a.json': {} }
+		});
+		const svc = createService(fbDir, { fallbacks: { 'DE-AT': 'de' } });
+		svc.onModuleInit();
+
+		expect(svc.getLocales().sort()).toEqual(['de', 'de-AT', 'en']);
+		expect(svc.t('key', { locale: 'de_AT' })).toBe('DE');
+
+		removeFixture(fbDir);
+	});
+
+	it('strict mode accepts keys covered by intermediate fallbacks', () => {
+		const fbDir = createFixture({
+			en: { 'a.json': { one: 'One', two: 'Two' } },
+			de: { 'a.json': { one: 'Eins', two: 'Zwei' } },
+			'de-AT': { 'a.json': { one: 'Servus' } }
+		});
+		const svc = createService(fbDir, {
+			strict: true,
+			fallbacks: { 'de-AT': 'de' }
+		});
+		expect(() => svc.onModuleInit()).not.toThrow();
+
+		removeFixture(fbDir);
+	});
+
+	it('strict mode still fails when only terminal fallback covers the key', () => {
+		const fbDir = createFixture({
+			en: { 'a.json': { one: 'One', two: 'Two' } },
+			fr: { 'a.json': { one: 'Un' } }
+		});
+		const svc = createService(fbDir, { strict: true });
+		expect(() => svc.onModuleInit()).toThrow(/"two"/);
+
+		removeFixture(fbDir);
+	});
+
 	it('reloads translations from disk', () => {
 		const svc = createService(dir);
 		svc.onModuleInit();

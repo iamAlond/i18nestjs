@@ -1,5 +1,6 @@
 export * from './compiler';
 export * from './loader';
+export * from './locales';
 export * from './module';
 export * from './module-definition';
 export * from './options';

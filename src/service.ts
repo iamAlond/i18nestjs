@@ -3,6 +3,13 @@ import { MessageCompiler } from './compiler';
 import { JsonLoader } from './loader';
 import { MODULE_OPTIONS_TOKEN } from './module-definition';
 import { I18nModuleOptions } from './options';
+import {
+	explicitChain,
+	localeChain,
+	normalizeFallbacks,
+	normalizeLocale,
+	normalizeLocaleMessages
+} from './locales';
 import { LocaleMessages } from './scan';
 import { I18nCallOptions, I18nCallParams, I18nKey, I18nReservedOptions, I18nValue } from './types';
 
@@ -18,11 +25,15 @@ export class I18nService implements OnModuleInit {
 	});
 
 	private messages: LocaleMessages = new Map();
+	private fallbacks = new Map<string, string>();
+	private readonly fallbackLocale: string;
 
 	constructor(
 		@Inject(MODULE_OPTIONS_TOKEN) private readonly options: I18nModuleOptions,
 		private readonly loader: JsonLoader
-	) {}
+	) {
+		this.fallbackLocale = normalizeLocale(options.fallbackLanguage);
+	}
 
 	onModuleInit(): void {
 		this.reload();
@@ -31,7 +42,10 @@ export class I18nService implements OnModuleInit {
 
 	/** Reload all translation files from disk. */
 	reload(): void {
-		const loaded = this.loader.load();
+		const loaded = normalizeLocaleMessages(this.loader.load(), message =>
+			this.logger.warn(message)
+		);
+		this.fallbacks = normalizeFallbacks(this.options.fallbacks);
 
 		if (this.options.strict) {
 			this.assertStrict(loaded);
@@ -48,7 +62,7 @@ export class I18nService implements OnModuleInit {
 	}
 
 	private assertStrict(loaded: LocaleMessages): void {
-		const fallback = loaded.get(this.options.fallbackLanguage);
+		const fallback = loaded.get(this.fallbackLocale);
 		if (!fallback) {
 			throw new Error(
 				`i18nestjs strict mode: fallback locale "${this.options.fallbackLanguage}" not found in ${this.options.localesPath}`
@@ -57,9 +71,22 @@ export class I18nService implements OnModuleInit {
 
 		const problems: string[] = [];
 		for (const [locale, messages] of loaded) {
-			if (locale === this.options.fallbackLanguage) continue;
+			if (locale === this.fallbackLocale) continue;
 
-			const missing = [...fallback.keys()].filter(key => !messages.has(key));
+			// Keys covered by an intermediate locale in the fallback chain
+			// (e.g. de-AT → de) count as translated. Only the terminal
+			// fallbackLanguage does not count — that would make strict
+			// mode meaningless.
+			const covered = new Set<string>();
+			for (const chainLocale of explicitChain(locale, this.fallbacks, this.fallbackLocale)) {
+				for (const key of loaded.get(chainLocale)?.keys() ?? []) {
+					covered.add(key);
+				}
+			}
+
+			const missing = [...fallback.keys()].filter(
+				key => !messages.has(key) && !covered.has(key)
+			);
 			if (missing.length > 0) {
 				problems.push(
 					`locale "${locale}" is missing ${missing.length} key(s): ${missing
@@ -88,19 +115,19 @@ export class I18nService implements OnModuleInit {
 		const { locale, defaultValue, debug, ...values } =
 			options as unknown as I18nReservedOptions & Record<string, I18nValue>;
 
-		const requested = locale ?? this.options.defaultLocale ?? this.options.fallbackLanguage;
+		const requested = normalizeLocale(
+			locale ?? this.options.defaultLocale ?? this.options.fallbackLanguage
+		);
 
-		const direct = this.messages.get(requested)?.get(key);
 		let message: string | undefined;
 		let messageLocale = requested;
 
-		if (direct !== undefined) {
-			message = direct;
-		} else {
-			const fallback = this.messages.get(this.options.fallbackLanguage)?.get(key);
-			if (fallback !== undefined) {
-				message = fallback;
-				messageLocale = this.options.fallbackLanguage;
+		for (const chainLocale of localeChain(requested, this.fallbacks, this.fallbackLocale)) {
+			const candidate = this.messages.get(chainLocale)?.get(key);
+			if (candidate !== undefined) {
+				message = candidate;
+				messageLocale = chainLocale;
+				break;
 			}
 		}
 
@@ -133,15 +160,14 @@ export class I18nService implements OnModuleInit {
 
 	/** Raw (uncompiled) message for a key, or `undefined`. */
 	getMessage(locale: string, key: string): string | undefined {
-		return this.messages.get(locale)?.get(key);
+		return this.messages.get(normalizeLocale(locale))?.get(key);
 	}
 
-	/** Whether a key exists in the given locale (or the fallback locale). */
+	/** Whether a key exists in the given locale's fallback chain. */
 	has(key: string, locale?: string): boolean {
-		const target = locale ?? this.options.fallbackLanguage;
-		return (
-			this.messages.get(target)?.has(key) === true ||
-			this.messages.get(this.options.fallbackLanguage)?.has(key) === true
+		const requested = normalizeLocale(locale ?? this.options.fallbackLanguage);
+		return localeChain(requested, this.fallbacks, this.fallbackLocale).some(chainLocale =>
+			this.messages.get(chainLocale)?.has(key)
 		);
 	}
 
