@@ -15,13 +15,13 @@
 		"localization",
 		"translation"
 	],
-	"homepage": "https://github.com/iamAlond/nestjs-i18next#readme",
+	"homepage": "https://github.com/iamAlond/i18nestjs#readme",
 	"bugs": {
-		"url": "https://github.com/iamAlond/nestjs-i18next"
+		"url": "https://github.com/iamAlond/i18nestjs/issues"
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/iamAlond/nestjs-i18next.git"
+		"url": "git+https://github.com/iamAlond/i18nestjs.git"
 	},
 	"license": "MIT",
 	"author": "Matvey iamAlond",

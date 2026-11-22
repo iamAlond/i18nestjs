@@ -1,30 +1,21 @@
 <div align="center">
-   <h1>
-       <a href="#"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo"></a>
-   </h1>
-   🌍 Internalize your <a href="https://nestjs.com">NestJS</a> application using the nestjs-i18next module<b>
-   <br/><br/>
+   <h1>🌍 i18nestjs</h1>
+   <p>Type-safe ICU internationalization for <a href="https://nestjs.com">NestJS</a></p>
 </div>
 
 <p align="center">
-    <a href='https://img.shields.io/npm/v/@iamalond/nestjs-i18next'><img src="https://img.shields.io/npm/v/@iamalond/nestjs-i18next" alt="NPM Version" /></a>
-    <a href='https://img.shields.io/npm/l/@iamalond/nestjs-i18next'><img src="https://img.shields.io/npm/l/@iamalond/nestjs-i18next" alt="NPM License" /></a>
-    <a href='https://img.shields.io/npm/dm/@iamalond/nestjs-i18next'><img src="https://img.shields.io/npm/dm/@iamalond/nestjs-i18next" alt="NPM Downloads" /></a>
-    <a href='https://img.shields.io/github/last-commit/iamAlond/nestjs-i18next'><img src="https://img.shields.io/github/last-commit/iamAlond/nestjs-i18next" alt="Last commit" /></a>
+    <a href='https://img.shields.io/npm/v/i18nestjs'><img src="https://img.shields.io/npm/v/i18nestjs" alt="NPM Version" /></a>
+    <a href='https://img.shields.io/npm/l/i18nestjs'><img src="https://img.shields.io/npm/l/i18nestjs" alt="NPM License" /></a>
+    <a href='https://img.shields.io/npm/dm/i18nestjs'><img src="https://img.shields.io/npm/dm/i18nestjs" alt="NPM Downloads" /></a>
 </p>
 
-## About the Project
+**i18nestjs** is a type-safe internationalization module for NestJS.
 
-**nestjs-i18next** is an internationalization module for NestJS applications.
-
-The project was inspired by the popular `nestjs-i18n` module, but with a major enhancement: **full type-safety for translation arguments**. No more `any` in your translations — your keys and variables are strictly typed based on your JSON files.
-
-### Key Features:
-
-- 🛡️ **Strict Typing**: Automatic type generation for paths and arguments.
-- 🧩 **ICU Format**: Support for variables and complex pluralization (similar to the `i18next-icu` plugin).
-- 🔄 **Live Reload**: Watch for translation file changes without restarting the server.
-- 📂 **Recursive Namespaces**: Support for nested subfolders to organize your translations cleanly.
+- **Real ICU MessageFormat** via [`intl-messageformat`](https://formatjs.io/docs/intl-messageformat/) — plurals, selects, number/date/time skeletons, correct CLDR plural rules for every locale
+- **Compile-time type safety** — keys *and* per-key argument types, generated from your JSON files by a CLI (no runtime codegen, works in Docker builds)
+- **Locale fallback chains** — `de-AT → de → en`, plus automatic base-language fallback (`pt-BR → pt`)
+- **Strict mode & validation** — enforce key parity across locales
+- **Live reload** — translation files watched in development
 
 ---
 
@@ -33,145 +24,191 @@ The project was inspired by the popular `nestjs-i18n` module, but with a major e
 **Node.js 22.0.0 or newer is required.**
 
 ```bash
-$ npm install @iamalond/nestjs-i18next
-$ yarn add @iamalond/nestjs-i18next
-$ pnpm add @iamalond/nestjs-i18next
+npm install i18nestjs
+# or: pnpm add i18nestjs / yarn add i18nestjs
 ```
 
-## Usage
+## Quick start
 
-After installation, we can import the `I18nextModule` into the root `AppModule`:
+### 1. Translation files
+
+```
+src/i18n/
+├── en/
+│   ├── common.json
+│   └── errors.json
+└── uk/
+    ├── common.json
+    └── errors.json
+```
+
+`src/i18n/en/common.json`:
+
+```json
+{
+	"hello": "Hello {name}!",
+	"items": "{count, plural, one {# item} other {# items}}",
+	"profile": {
+		"title": "Profile of {name}"
+	}
+}
+```
+
+JSON objects are flattened into dot-keys: `profile.title` above. Flat `"a.b": "..."` keys work too.
+
+### 2. Register the module
 
 ```typescript
-import { I18nextModule } from '@iamalond/nestjs-i18next';
+import { Module } from '@nestjs/common';
+import { I18nModule } from 'i18nestjs';
 
 @Module({
-    imports: [
-        I18nextModule.forRoot({
-            fallbackLanguage: 'en',
-            throwOnMissingKey: true,
-            logging: true,
-            generatedTypesPath: path.join(process.cwd(), 'src/i18n/index.d.ts'),
-            loadingOptions: {
-                path: path.join(process.cwd(), 'src/i18n'),
-                subfolders: true, // recursive loading
-                watch: true
-            }
-        })
-    ]
+	imports: [
+		I18nModule.forRoot({
+			fallbackLanguage: 'en',
+			localesPath: './src/i18n',
+			fallbacks: { 'de-AT': 'de' },
+			logging: true
+		})
+	]
 })
 export class AppModule {}
 ```
 
-Then use `I18nextService` in your service's constructor:
+### 3. Generate types
+
+```bash
+npx i18nestjs types -p ./src/i18n -f en
+# → src/i18n.types.d.ts (default output)
+```
+
+The generated `.d.ts` is picked up by `tsc` automatically — no import needed. Regenerate whenever fallback-language files change (CI, Docker build, or a `prebuild` script).
+
+### 4. Use it
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { I18nextService } from '@iamalond/nestjs-i18next';
-/**
- * Import the types from the path you specified in 'generatedTypesPath'
- * (e.g., src/i18n/index.d.ts)
- */
-import { I18nTranslations } from './i18n';
+import { I18nService } from 'i18nestjs';
 
 @Injectable()
 export class AppService {
-    // Pass I18nTranslations to the service for strict typing
-    constructor(private readonly i18n: I18nextService<I18nTranslations>) {}
+	constructor(private readonly i18n: I18nService) {}
 
-    getHello(): string {
-        // 1. Simple translation (autocomplete for keys, when start typing!)
-        const simple = this.i18n.t('common.hello');
-
-        // 2. Translation with arguments (Typescript will REQUIRE 'args' if variables exist)
-        const withArgs = this.i18n.t('common.welcome', {
-            args: { name: 'Matvey iamAlond' },
-            lang: 'en'
-        });
-
-        const apples = this.i18n.t('common.apples', {
-            args: { count: 5 }
-        });
-
-        // 3. You can also use the 'translate' alias
-        return this.i18n.translate('core.errors.notFound', {
-            defaultValue: 'Not Found',
-            debug: true
-        });
-    }
+	greet() {
+		this.i18n.t('hello', { name: 'World' }); // "Hello World!"
+		this.i18n.t('items', { count: 5 }); // "5 items"
+		this.i18n.t('profile.title', { name: 'Ada' }); // nested key
+		this.i18n.t('hello', { name: 'Світ', locale: 'uk' }); // per-call locale
+	}
 }
 ```
 
-### Dynamic Translation Keys
-
-If you need to use a dynamic key (e.g., based on an HTTP status code), use the I18nPath type. This type is also automatically generated in your generatedTypesPath and contains all valid translation paths.
+TypeScript now enforces:
 
 ```typescript
-import { I18nPath, I18nTranslations } from './i18n';
+this.i18n.t('helo', { name: 'x' }); // ❌ unknown key
+this.i18n.t('hello'); // ❌ missing required arg `name`
+this.i18n.t('items', { count: 'five' }); // ❌ count must be number
+this.i18n.t('hello', { name: 'x', bogus: 1 }); // ❌ unknown argument
+```
 
-@Injectable()
-export class ErrorsService {
-    constructor(private readonly i18n: I18nextService<I18nTranslations>) {}
+Escape hatch for dynamic keys: `this.i18n.t(key as I18nKey, ...)`.
 
-    handleError(statusCode: number) {
-        /**
-         * Use 'as I18nPath' to tell TypeScript that this string
-         * is a valid translation key.
-         */
-        return this.i18n.t(`errors.status.${statusCode}` as I18nPath, {
-            defaultValue: 'An unexpected error occurred'
-        });
-    }
+## ICU syntax
+
+Standard [ICU MessageFormat](https://unicode-org.github.io/icu/userguide/format_parse/messages/):
+
+```json
+{
+	"welcome": "Hello {name}!",
+	"items": "{count, plural, one {# item} other {# items}}",
+	"invited": "{gender, select, male {He} female {She} other {They}} invited you",
+	"due": "Due {date, date, short}",
+	"price": "{price, number, ::currency/USD}",
+	"literal": "Use '{name}' to insert literally"
 }
 ```
 
-## File Structure
+- `{name}` → `string | number`
+- `{count, plural, ...}` / `{n, selectordinal, ...}` → `number`
+- `{x, select, ...}` → `string`
+- `{d, date}` / `{t, time}` → `Date | number`
+- `{n, number}` → `number`
+- Escape literal braces with an apostrophe: `'{name}'`
 
-By default, the module uses the locale/ns.json structure. With subfolders: true, you can use recursive nesting. Keys will be resolved as `namespace.subfolder.key`. You can also combine both of these approaches.
+## Locale resolution
+
+Lookup order for `t(key, { locale })`:
+
+```
+requested → explicit fallbacks → base language (xx-YY → xx) → fallbackLanguage
+```
+
+```typescript
+I18nModule.forRoot({
+	fallbackLanguage: 'en',
+	fallbacks: { 'de-AT': 'de', 'zh-CN': 'zh' },
+	fallbackToBaseLanguage: true // default — pt-BR automatically tries pt/
+});
+```
+
+Locale tags are canonicalized: `de-at`, `de_AT`, `DE-at` all match `de-AT`. The plural/date formatting uses the locale of the message actually found.
+
+## Module options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `fallbackLanguage` | `string` | **required** | Canonical locale: last-resort fallback, reference for types |
+| `localesPath` | `string` | **required** | Directory with one subfolder per locale |
+| `fallbacks` | `Record<string, string>` | `{}` | Explicit chains: `{ 'de-AT': 'de' }` |
+| `fallbackToBaseLanguage` | `boolean` | `true` | `xx-YY` → `xx` automatic fallback |
+| `defaultLocale` | `string` | `fallbackLanguage` | Locale when `t()` gets none |
+| `strict` | `boolean` | `false` | Fail init unless every key is covered per locale (via chains, excluding terminal fallback) |
+| `namespaceByFile` | `boolean` | `false` | Prefix keys with file path: `user.json` → `user.profile.name` |
+| `watch` | `boolean` | `NODE_ENV !== 'production'` | Reload on file changes |
+| `missingKey` | `'return-key' \| 'throw'` | `'return-key'` | Missing key behavior |
+| `logging` | `boolean` | `false` | Informational logs |
+
+`forRootAsync({ useFactory })` is supported; pass `{ isGlobal: true }` to make the module global.
+
+## Service API
+
+```typescript
+i18n.t(key, options?)           // translate; options = ICU args + reserved opts
+i18n.getLocales()               // loaded locale codes
+i18n.getMessage(locale, key)    // raw ICU message or undefined
+i18n.has(key, locale?)          // key presence in fallback chain
+i18n.withLocale('uk')           // scoped service bound to a locale
+i18n.reload()                   // manual reload from disk
+```
+
+Reserved options (stripped before ICU formatting — don't use them as argument names): `locale`, `defaultValue`, `debug`.
+
+## CLI
 
 ```bash
-src/i18n/
-├── en/
-│   ├── common.json
-│   └── core/
-│       └── errors.json  <-- key will be "core.errors.invalid_password"
-└── ru/
-    ├── common.json
-    └── ...
+i18nestjs types -p ./src/i18n -f en -o src/i18n.types.d.ts
+i18nestjs validate -p ./src/i18n -f en --fallbacks '{"de-AT":"de"}'
 ```
 
-### Examples
+- **`types`** — generates the `I18nTypes` module augmentation from the fallback locale (keys + per-key arg types parsed from ICU AST)
+- **`validate`** — checks every locale against the fallback: missing/extra keys (via fallback chains), invalid ICU syntax, mismatched arguments. Exit code 1 on errors — usable in CI
 
-To support the examples above, your translation directory should look like this:
+## Docker / CI
 
-`src/i18n/en/common.json`
+Types are generated statically — no dev server needed:
 
-```json
-{
-    "hello": "Hello!",
-    "welcome": "Welcome, {{name}}!",
-    "apples": "{count, plural, =0 {No apples} one {# apple} =3 {three apples} other {# apples}}"
-}
+```dockerfile
+RUN pnpm i18nestjs types -p ./src/i18n -f en && pnpm build
 ```
 
-`src/i18n/en/core/errors.json`
+Or commit `i18n.types.d.ts` to git and regenerate in CI when translations change.
 
-```json
-{
-    "invalid_password": "Invalid password",
-    "notFound": "Resource not found",
-    "status": {
-        "400": "Bad request",
-        "401": "Unauthorized",
-        "403": "Forbidden",
-        "404": "Not found",
-        "500": "Internal server error"
-    }
-}
-```
+## Compatibility
 
-## Key Resolution Rules
+- NestJS `^8 || ^9 || ^10 || ^11 || ^12`
+- The package is CommonJS — works in both CJS and ESM NestJS applications (Node ≥22.12 for `require(esm)` consumers on the ESM side)
 
-- Simple file: common.json -> key starts with common (e.g., common.hello).
-- Subfolders: core/errors.json -> key starts with core.errors (e.g., core.errors.status.404).
-- Arguments: Any string containing {{var}} or ICU structures like {count, plural, ...} will automatically require args in your TypeScript code.
+## License
+
+MIT © Matvey iamAlond
