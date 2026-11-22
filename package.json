@@ -1,6 +1,6 @@
 {
 	"name": "i18nestjs",
-	"version": "2.0.0",
+	"version": "2.1.0",
 	"description": "🌍 Type-safe ICU i18n module for NestJS",
 	"keywords": [
 		"nestjs",

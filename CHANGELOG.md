@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.1.0](https://github.com/iamAlond/i18nestjs/compare/1.3.3...2.1.0) (2026-11-22)
+
+* **deps:** bump the github-actions group with 5 updates ([#37](https://github.com/iamAlond/i18nestjs/issues/37)) ([caeab6f](https://github.com/iamAlond/i18nestjs/commit/caeab6f51d8604b978ce6f06a9848ff3ac2fbfd1))
+* **security:** update security ([bf908da](https://github.com/iamAlond/i18nestjs/commit/bf908dafff0018730ea9eebeec5586089cf1d39c))
+* trigger publish workflow on any tag ([fc90819](https://github.com/iamAlond/i18nestjs/commit/fc90819d6afafd6c281d4b5797d9c1310e84589b))
+
+### Features
+
+* Add per-locale fallback chains and locale canonicalization ([8ddf091](https://github.com/iamAlond/i18nestjs/commit/8ddf091e90dd16e199e8fdf1c7f9a83897ae78dd))
+* Auto-fallback regional locales to base language ([c7971a7](https://github.com/iamAlond/i18nestjs/commit/c7971a7981b9741e493ea8aaf16cfe739b03e2c6))
+* Default CLI types output to src/i18n.types.d.ts ([fd58b84](https://github.com/iamAlond/i18nestjs/commit/fd58b84e21f5aa3b0cb67ff03e5b8a0acd2ddcb9))
+* Rewrite as i18nestjs v2 with ICU MessageFormat and type-safe keys ([8ef5b7d](https://github.com/iamAlond/i18nestjs/commit/8ef5b7d471d620db98deb0d771560f4a8afbf464))
+
+### Bug Fixes
+
+* Split tsconfig into IDE base and build config ([8ac82e4](https://github.com/iamAlond/i18nestjs/commit/8ac82e4ce6772fb589805b2ef8178b7b235960c8))
+
+### Documentation
+
+* **readme:** update readme & package links ([e8fe258](https://github.com/iamAlond/i18nestjs/commit/e8fe258ca475db28f64fe22dab29a4073710353b))
+
+### Testing
+
+* Add Nest DI integration tests and shared fixtures ([2159a2c](https://github.com/iamAlond/i18nestjs/commit/2159a2caca53e924150c28645b2bedf626264243))
+
 ## [1.3.3](https://github.com/iamAlond/nestjs-i18next/compare/1.3.2...1.3.3) (2026-11-21)
 
 * **deps-dev:** bump the dev-deps group across 1 directory with 10 updates ([1befc9c](https://github.com/iamAlond/nestjs-i18next/commit/1befc9cbaffc33d3e89abde12d4b2e8932b923d1))
