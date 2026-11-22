@@ -27,12 +27,14 @@ export class I18nService implements OnModuleInit {
 	private messages: LocaleMessages = new Map();
 	private fallbacks = new Map<string, string>();
 	private readonly fallbackLocale: string;
+	private readonly useBaseFallback: boolean;
 
 	constructor(
 		@Inject(MODULE_OPTIONS_TOKEN) private readonly options: I18nModuleOptions,
 		private readonly loader: JsonLoader
 	) {
 		this.fallbackLocale = normalizeLocale(options.fallbackLanguage);
+		this.useBaseFallback = options.fallbackToBaseLanguage !== false;
 	}
 
 	onModuleInit(): void {
@@ -78,7 +80,12 @@ export class I18nService implements OnModuleInit {
 			// fallbackLanguage does not count — that would make strict
 			// mode meaningless.
 			const covered = new Set<string>();
-			for (const chainLocale of explicitChain(locale, this.fallbacks, this.fallbackLocale)) {
+			for (const chainLocale of explicitChain(
+				locale,
+				this.fallbacks,
+				this.fallbackLocale,
+				this.useBaseFallback
+			)) {
 				for (const key of loaded.get(chainLocale)?.keys() ?? []) {
 					covered.add(key);
 				}
@@ -122,7 +129,12 @@ export class I18nService implements OnModuleInit {
 		let message: string | undefined;
 		let messageLocale = requested;
 
-		for (const chainLocale of localeChain(requested, this.fallbacks, this.fallbackLocale)) {
+		for (const chainLocale of localeChain(
+			requested,
+			this.fallbacks,
+			this.fallbackLocale,
+			this.useBaseFallback
+		)) {
 			const candidate = this.messages.get(chainLocale)?.get(key);
 			if (candidate !== undefined) {
 				message = candidate;
@@ -166,9 +178,12 @@ export class I18nService implements OnModuleInit {
 	/** Whether a key exists in the given locale's fallback chain. */
 	has(key: string, locale?: string): boolean {
 		const requested = normalizeLocale(locale ?? this.options.fallbackLanguage);
-		return localeChain(requested, this.fallbacks, this.fallbackLocale).some(chainLocale =>
-			this.messages.get(chainLocale)?.has(key)
-		);
+		return localeChain(
+			requested,
+			this.fallbacks,
+			this.fallbackLocale,
+			this.useBaseFallback
+		).some(chainLocale => this.messages.get(chainLocale)?.has(key));
 	}
 
 	/**

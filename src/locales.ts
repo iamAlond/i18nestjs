@@ -49,15 +49,26 @@ export function normalizeLocaleMessages(
 	return result;
 }
 
+/** Primary language subtag: `pt-BR` → `pt`, `zh-Hant-TW` → `zh`. */
+function baseLanguage(locale: string): string | undefined {
+	const base = locale.split('-')[0];
+	return base === locale ? undefined : base;
+}
+
 /**
  * Ordered fallback chain for a locale:
- * requested → explicit fallbacks → terminal (`fallbackLanguage`).
- * Cycle-safe; the terminal is always the last element.
+ * requested → explicit fallbacks → base language (optional) → terminal
+ * (`fallbackLanguage`). Cycle-safe; the terminal is always last.
+ *
+ * With `useBaseFallback`, every hop without an explicit fallback entry
+ * falls back to its primary language subtag (`pt-BR` → `pt`), so a
+ * `pt/` directory serves all Portuguese variants automatically.
  */
 export function localeChain(
 	locale: string,
 	fallbacks: Map<string, string>,
-	terminal: string
+	terminal: string,
+	useBaseFallback = true
 ): string[] {
 	const term = normalizeLocale(terminal);
 	const chain: string[] = [];
@@ -68,7 +79,7 @@ export function localeChain(
 		seen.add(current);
 		chain.push(current);
 		if (current === term) break;
-		current = fallbacks.get(current);
+		current = fallbacks.get(current) ?? (useBaseFallback ? baseLanguage(current) : undefined);
 	}
 
 	if (!chain.includes(term)) chain.push(term);
@@ -83,8 +94,9 @@ export function localeChain(
 export function explicitChain(
 	locale: string,
 	fallbacks: Map<string, string>,
-	terminal: string
+	terminal: string,
+	useBaseFallback = true
 ): string[] {
 	const term = normalizeLocale(terminal);
-	return localeChain(locale, fallbacks, term).filter(l => l !== term);
+	return localeChain(locale, fallbacks, term, useBaseFallback).filter(l => l !== term);
 }

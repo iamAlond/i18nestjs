@@ -67,6 +67,29 @@ describe('localeChain', () => {
 		const fb = normalizeFallbacks({ 'de-AT': 'en' });
 		expect(localeChain('de-AT', fb, 'en')).toEqual(['de-AT', 'en']);
 	});
+
+	it('falls back to base language subtag by default', () => {
+		expect(localeChain('pt-BR', fallbacks, 'en')).toEqual(['pt-BR', 'pt', 'en']);
+		expect(localeChain('zh-Hant-TW', fallbacks, 'en')).toEqual(['zh-Hant-TW', 'zh', 'en']);
+	});
+
+	it('explicit fallbacks take precedence over base language', () => {
+		const fb = normalizeFallbacks({ 'pt-BR': 'pt-PT' });
+		expect(localeChain('pt-BR', fb, 'en')).toEqual(['pt-BR', 'pt-PT', 'pt', 'en']);
+	});
+
+	it('base fallback applies to every hop of the chain', () => {
+		const fb = normalizeFallbacks({ 'de-AT': 'de-CH' });
+		expect(localeChain('de-AT', fb, 'en')).toEqual(['de-AT', 'de-CH', 'de', 'en']);
+	});
+
+	it('can be disabled', () => {
+		expect(localeChain('pt-BR', fallbacks, 'en', false)).toEqual(['pt-BR', 'en']);
+	});
+
+	it('does not add base step for base locales', () => {
+		expect(localeChain('de', fallbacks, 'en')).toEqual(['de', 'en']);
+	});
 });
 
 describe('explicitChain', () => {

@@ -23,6 +23,7 @@ Options:
   -o, --out <file>          Output file for generated types      [default: src/i18n.types.d.ts]
       --namespace-by-file   Match the runtime namespaceByFile option
       --fallbacks <json>    Fallback chains, e.g. '{"de-AT":"de"}'
+      --no-base-fallback    Disable automatic xx-YY → xx fallback
   -h, --help                Show this help
 `;
 
@@ -35,6 +36,7 @@ function main(): void {
 			out: { type: 'string', short: 'o', default: 'src/i18n.types.d.ts' },
 			'namespace-by-file': { type: 'boolean', default: false },
 			fallbacks: { type: 'string' },
+			'base-fallback': { type: 'boolean', default: true },
 			help: { type: 'boolean', short: 'h', default: false }
 		}
 	});
@@ -89,7 +91,9 @@ function main(): void {
 			cmdTypes(fallback, values.out);
 			break;
 		case 'validate':
-			process.exit(cmdValidate(locales, fallback, fallbackMap, fallbackLocale));
+			process.exit(
+				cmdValidate(locales, fallback, fallbackMap, fallbackLocale, values['base-fallback'])
+			);
 			break;
 		default:
 			console.error(`Error: unknown command "${command}"\n`);
@@ -115,7 +119,8 @@ function cmdValidate(
 	locales: Map<string, Map<string, string>>,
 	fallback: Map<string, string>,
 	fallbacks: Map<string, string>,
-	fallbackLocale: string
+	fallbackLocale: string,
+	useBaseFallback: boolean
 ): number {
 	const errors: string[] = [];
 	const warnings: string[] = [];
@@ -126,7 +131,12 @@ function cmdValidate(
 		// Keys covered by intermediate locales in the fallback chain count
 		// as translated; only the terminal fallbackLanguage does not.
 		const covered = new Set<string>();
-		for (const chainLocale of explicitChain(locale, fallbacks, fallbackLocale)) {
+		for (const chainLocale of explicitChain(
+			locale,
+			fallbacks,
+			fallbackLocale,
+			useBaseFallback
+		)) {
 			for (const key of locales.get(chainLocale)?.keys() ?? []) {
 				covered.add(key);
 			}

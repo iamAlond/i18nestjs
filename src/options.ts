@@ -36,6 +36,12 @@ export interface I18nModuleOptions {
 	 */
 	fallbacks?: Record<string, string>;
 	/**
+	 * Automatically fall back to the primary language subtag:
+	 * `pt-BR` → `pt` → `fallbackLanguage`. Applies to every hop of the
+	 * chain, after explicit `fallbacks` entries. Default: `true`.
+	 */
+	fallbackToBaseLanguage?: boolean;
+	/**
 	 * Locale used when a `t()` call does not specify `locale`.
 	 * Defaults to `fallbackLanguage`.
 	 */

@@ -215,6 +215,49 @@ describe('I18nService', () => {
 		removeFixture(fbDir);
 	});
 
+	it('falls back to base language directory automatically', () => {
+		const baseDir = createFixture({
+			de: { 'a.json': { key: 'DE' } },
+			'pt-BR': { 'a.json': {} }
+		});
+		const svc = createService(baseDir, { fallbackLanguage: 'de' });
+		svc.onModuleInit();
+
+		// pt-BR → pt (absent) → de
+		expect(svc.t('key', { locale: 'pt-BR' })).toBe('DE');
+
+		removeFixture(baseDir);
+	});
+
+	it('base language directory serves regional variants', () => {
+		const baseDir = createFixture({
+			en: { 'a.json': { key: 'EN' } },
+			pt: { 'a.json': { key: 'PT' } }
+		});
+		const svc = createService(baseDir);
+		svc.onModuleInit();
+
+		// pt-BR → pt → en; pt exists so 'PT' wins over 'EN'
+		expect(svc.t('key', { locale: 'pt-BR' })).toBe('PT');
+		expect(svc.t('key', { locale: 'pt-PT' })).toBe('PT');
+
+		removeFixture(baseDir);
+	});
+
+	it('fallbackToBaseLanguage: false disables automatic base fallback', () => {
+		const baseDir = createFixture({
+			en: { 'a.json': { key: 'EN' } },
+			pt: { 'a.json': { key: 'PT' } }
+		});
+		const svc = createService(baseDir, { fallbackToBaseLanguage: false });
+		svc.onModuleInit();
+
+		// pt-BR → en directly, pt is skipped
+		expect(svc.t('key', { locale: 'pt-BR' })).toBe('EN');
+
+		removeFixture(baseDir);
+	});
+
 	it('reloads translations from disk', () => {
 		const svc = createService(dir);
 		svc.onModuleInit();
