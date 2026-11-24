@@ -132,7 +132,7 @@ Standard [ICU MessageFormat](https://unicode-org.github.io/icu/userguide/format_
 
 - `{name}` → `string | number`
 - `{count, plural, ...}` / `{n, selectordinal, ...}` → `number`
-- `{x, select, ...}` → `string`
+- `{x, select, ...}` → union of branch selectors, e.g. `"male" | "female" | "other"`
 - `{d, date}` / `{t, time}` → `Date | number`
 - `{n, number}` → `number`
 - Escape literal braces with an apostrophe: `'{name}'`

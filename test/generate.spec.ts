@@ -14,9 +14,14 @@ describe('extractArgs', () => {
 		expect(args).toEqual({ count: 'number' });
 	});
 
-	it('extracts select arguments as string', () => {
-		const args = extractArgs('{gender, select, male {He} other {They}}');
-		expect(args).toEqual({ gender: 'string' });
+	it('extracts select arguments as a union of branch selectors', () => {
+		const args = extractArgs('{gender, select, male {He} female {She} other {They}}');
+		expect(args).toEqual({ gender: '"male" | "female" | "other"' });
+	});
+
+	it('unions types when an argument is used in several ICU forms', () => {
+		const args = extractArgs('{x} {x, select, a {A} other {B}}');
+		expect(args?.x).toBe('string | number | "a" | "other"');
 	});
 
 	it('extracts date/time arguments as Date | number', () => {
@@ -59,6 +64,14 @@ describe('generateTypesDeclaration', () => {
 		expect(output).toContain('"name": string | number');
 		// static key has no args entry
 		expect(output).not.toContain('"static": {');
+	});
+
+	it('emits select selector unions in the declaration', () => {
+		const messages = new Map<string, string>([
+			['invited', '{gender, select, male {He} female {She} other {They}} invited you']
+		]);
+		const output = generateTypesDeclaration(messages);
+		expect(output).toContain('"gender": "male" | "female" | "other"');
 	});
 
 	it('handles empty message sets', () => {

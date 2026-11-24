@@ -21,6 +21,12 @@ export function extractArgs(message: string): ExtractedArgs | null {
 	return args;
 }
 
+/** Adds an argument type, unioning when the arg is used with several types. */
+function addArg(args: ExtractedArgs, name: string, type: string): void {
+	const prev = args[name];
+	args[name] = prev === undefined || prev === type ? type : `${prev} | ${type}`;
+}
+
 function collect(elements: MessageFormatElement[], args: ExtractedArgs): void {
 	for (const element of elements) {
 		switch (element.type) {
@@ -28,23 +34,34 @@ function collect(elements: MessageFormatElement[], args: ExtractedArgs): void {
 			case TYPE.pound:
 				break;
 			case TYPE.argument:
-				args[element.value] = 'string | number';
+				addArg(args, element.value, 'string | number');
 				break;
 			case TYPE.number:
-				args[element.value] = 'number';
+				addArg(args, element.value, 'number');
 				break;
 			case TYPE.date:
 			case TYPE.time:
-				args[element.value] = 'Date | number';
+				addArg(args, element.value, 'Date | number');
 				break;
-			case TYPE.select:
-				args[element.value] = 'string';
+			case TYPE.select: {
+				// Strict union of the declared selectors — 'other' included,
+				// it is a valid explicit choice. Unmatched values still fall
+				// through to 'other' at runtime.
+				const selectors = Object.keys(element.options);
+				addArg(
+					args,
+					element.value,
+					selectors.length > 0
+						? selectors.map(selector => JSON.stringify(selector)).join(' | ')
+						: 'string'
+				);
 				for (const option of Object.values(element.options)) {
 					collect(option.value, args);
 				}
 				break;
+			}
 			case TYPE.plural:
-				args[element.value] = 'number';
+				addArg(args, element.value, 'number');
 				for (const option of Object.values(element.options)) {
 					collect(option.value, args);
 				}
