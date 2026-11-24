@@ -1,9 +1,15 @@
 import { ExecutionContext } from '@nestjs/common';
 
+/** Result of {@link I18nResolver.resolve} — sync or async locale. */
+export type I18nResolverResult = string | undefined | Promise<string | undefined>;
+
 /**
  * Strategy that extracts a locale from an execution context. The first
  * resolver in `I18nModuleOptions.resolvers` returning a non-empty string
  * wins; its value is bound to `I18nContext` for the rest of the request.
+ * `resolve` may be async — e.g. to load the user's locale from Redis or
+ * a database by `req.user.id` (guards run before interceptors, so
+ * `req.user` is already populated).
  *
  * Built-in resolvers cover HTTP. For other frameworks (Discord/necord,
  * Telegram bots, queues, ...) implement this interface yourself — the
@@ -19,10 +25,21 @@ import { ExecutionContext } from '@nestjs/common';
  *     return interaction?.locale;
  *   }
  * }
+ *
+ * @Injectable()
+ * class UserLocaleResolver implements I18nResolver {
+ *   constructor(private readonly users: UsersService) {}
+ *
+ *   async resolve(context: ExecutionContext) {
+ *     const request = context.switchToHttp().getRequest();
+ *     const user = await this.users.findById(request.user?.id);
+ *     return user?.locale;
+ *   }
+ * }
  * ```
  */
 export interface I18nResolver {
-	resolve(context: ExecutionContext): string | undefined;
+	resolve(context: ExecutionContext): I18nResolverResult;
 }
 
 /** First entry of an `Accept-Language`-style header value. */

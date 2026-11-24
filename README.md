@@ -221,6 +221,22 @@ Built-in resolvers:
 
 Resolvers run **after guards**, so `req.user` is already populated — useful for DB-backed locales. `Accept-Language` values resolve to the first tag (`ru-RU,ru;q=0.9` → `ru-RU`).
 
+`resolve()` may be **async** — the handler waits for the chain to settle, so you can load the locale from Redis or a database:
+
+```typescript
+@Injectable()
+export class UserLocaleResolver implements I18nResolver {
+    constructor(private readonly users: UsersService) {}
+
+    async resolve(context: ExecutionContext): Promise<string | undefined> {
+        if (context.getType() !== 'http') return undefined;
+        const request = context.switchToHttp().getRequest();
+        const user = await this.users.findById(request.user?.id);
+        return user?.locale;
+    }
+}
+```
+
 ### Custom resolvers
 
 Implement `I18nResolver` for any framework. The context is the standard Nest `ExecutionContext` — unwrap it with the framework's helper:

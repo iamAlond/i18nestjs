@@ -115,6 +115,34 @@ describe('HTTP end-to-end (platform-express + supertest)', () => {
 		expect(res.body.text).toBe('Hello Inner!');
 	});
 
+	it('supports async resolvers end-to-end', async () => {
+		await app.close();
+		await moduleRef.close();
+
+		moduleRef = await Test.createTestingModule({
+			imports: [
+				I18nModule.forRoot(
+					options({
+						resolvers: [
+							{
+								resolve: async () => {
+									await new Promise(resolve => setTimeout(resolve, 5));
+									return 'ru';
+								}
+							}
+						]
+					})
+				)
+			],
+			controllers: [I18nTestController]
+		}).compile();
+		app = moduleRef.createNestApplication();
+		await app.init();
+
+		const res = await request(app.getHttpServer()).get('/hello');
+		expect(res.body.text).toBe('Привет Test!');
+	});
+
 	it('works without resolvers — plain fallback', async () => {
 		await app.close();
 		await moduleRef.close();
