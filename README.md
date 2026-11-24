@@ -298,6 +298,7 @@ Reserved options (stripped before ICU formatting — don't use them as argument 
 
 ```bash
 i18nestjs types -p ./src/i18n -f en -o src/i18n.types.d.ts
+i18nestjs types -p ./src/i18n -f en --watch   # regenerate on file changes
 i18nestjs validate -p ./src/i18n -f en --fallbacks '{"de-AT":"de"}'
 ```
 

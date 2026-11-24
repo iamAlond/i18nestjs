@@ -24,6 +24,7 @@ Options:
       --namespace-by-file   Match the runtime namespaceByFile option
       --fallbacks <json>    Fallback chains, e.g. '{"de-AT":"de"}'
       --no-base-fallback    Disable automatic xx-YY → xx fallback
+      --watch               Regenerate types on file changes (types only)
   -h, --help                Show this help
 `;
 
@@ -37,6 +38,7 @@ function main(): void {
 			'namespace-by-file': { type: 'boolean', default: false },
 			fallbacks: { type: 'string' },
 			'base-fallback': { type: 'boolean', default: true },
+			watch: { type: 'boolean', default: false },
 			help: { type: 'boolean', short: 'h', default: false }
 		}
 	});
@@ -88,9 +90,22 @@ function main(): void {
 
 	switch (command) {
 		case 'types':
-			cmdTypes(fallback, values.out);
+			if (values.watch) {
+				cmdTypesWatch({
+					path: values.path,
+					fallback: values.fallback,
+					out: values.out,
+					namespaceByFile: values['namespace-by-file']
+				});
+			} else {
+				cmdTypes(fallback, values.out);
+			}
 			break;
 		case 'validate':
+			if (values.watch) {
+				console.error('Error: --watch is only supported for the "types" command');
+				process.exit(1);
+			}
 			process.exit(
 				cmdValidate(locales, fallback, fallbackMap, fallbackLocale, values['base-fallback'])
 			);
@@ -113,6 +128,49 @@ function cmdTypes(fallback: Map<string, string>, out: string): void {
 		`Generated types for ${fallback.size} key(s) -> ${target}\n` +
 			`The file is picked up automatically by tsc as long as it is inside your tsconfig include paths (default: src/).`
 	);
+}
+
+function cmdTypesWatch(options: {
+	path: string;
+	fallback: string;
+	out: string;
+	namespaceByFile: boolean;
+}): void {
+	const localesDir = path.resolve(options.path);
+	const fallbackLocale = normalizeLocale(options.fallback);
+	const onWarn = (message: string) => console.warn(`warn: ${message}`);
+
+	const regenerate = (): void => {
+		const locales = normalizeLocaleMessages(
+			scanLocales(localesDir, {
+				namespaceByFile: options.namespaceByFile,
+				onWarn
+			}),
+			onWarn
+		);
+		const fallback = locales.get(fallbackLocale);
+		if (!fallback) {
+			console.error(
+				`Error: fallback locale "${options.fallback}" not found in ${options.path}`
+			);
+			return;
+		}
+		cmdTypes(fallback, options.out);
+	};
+
+	regenerate();
+	console.log(`Watching ${localesDir} for changes (Ctrl+C to stop)`);
+
+	let timer: NodeJS.Timeout | undefined;
+	try {
+		fs.watch(localesDir, { recursive: true }, () => {
+			clearTimeout(timer);
+			timer = setTimeout(regenerate, 150);
+		});
+	} catch (error) {
+		console.error(`Error: cannot watch ${localesDir}: ${(error as Error).message}`);
+		process.exit(1);
+	}
 }
 
 function cmdValidate(
