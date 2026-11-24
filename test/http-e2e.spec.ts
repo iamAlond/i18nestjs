@@ -68,6 +68,16 @@ describe('HTTP end-to-end (platform-express + supertest)', () => {
 		expect(res.body.locale).toBe('ru-RU');
 	});
 
+	it('skips Accept-Language entries without a loaded locale', async () => {
+		const res = await request(app.getHttpServer())
+			.get('/hello')
+			.set('Accept-Language', 'de-DE,de;q=0.9,ru;q=0.8');
+
+		// de-* not loaded → next matching tag ru wins
+		expect(res.body.text).toBe('Привет Test!');
+		expect(res.body.locale).toBe('ru');
+	});
+
 	it('prefers x-selected-language over accept-language', async () => {
 		const res = await request(app.getHttpServer())
 			.get('/hello')

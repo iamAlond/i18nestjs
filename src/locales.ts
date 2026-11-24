@@ -50,7 +50,7 @@ export function normalizeLocaleMessages(
 }
 
 /** Primary language subtag: `pt-BR` → `pt`, `zh-Hant-TW` → `zh`. */
-function baseLanguage(locale: string): string | undefined {
+export function baseLanguage(locale: string): string | undefined {
 	const base = locale.split('-')[0];
 	return base === locale ? undefined : base;
 }

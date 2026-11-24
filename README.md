@@ -219,7 +219,7 @@ Built-in resolvers:
 | `ParamResolver`  | route param, e.g. `/users/:locale`                |
 | `CookieResolver` | cookie                                            |
 
-Resolvers run **after guards**, so `req.user` is already populated — useful for DB-backed locales. `Accept-Language` values resolve to the first tag (`ru-RU,ru;q=0.9` → `ru-RU`).
+Resolvers run **after guards**, so `req.user` is already populated — useful for DB-backed locales. `Accept-Language` is fully parsed: entries are ordered by `q` weight and the first tag matching a **loaded** locale wins — `fr-CH,fr;q=0.9,en;q=0.8` resolves to `en` when French isn't available.
 
 `resolve()` may be **async** — the handler waits for the chain to settle, so you can load the locale from Redis or a database:
 

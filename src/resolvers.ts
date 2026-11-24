@@ -1,4 +1,5 @@
 import { ExecutionContext } from '@nestjs/common';
+import { baseLanguage, normalizeLocale } from './locales';
 
 /** Result of {@link I18nResolver.resolve} — sync or async locale. */
 export type I18nResolverResult = string | undefined | Promise<string | undefined>;
@@ -10,6 +11,11 @@ export type I18nResolverResult = string | undefined | Promise<string | undefined
  * `resolve` may be async — e.g. to load the user's locale from Redis or
  * a database by `req.user.id` (guards run before interceptors, so
  * `req.user` is already populated).
+ *
+ * The optional `locales` argument contains the canonical locale codes
+ * currently loaded by the module — resolvers may use it to pick the
+ * best match (e.g. `HeaderResolver` skips `Accept-Language` entries
+ * that have no matching locale). Custom resolvers can ignore it.
  *
  * Built-in resolvers cover HTTP. For other frameworks (Discord/necord,
  * Telegram bots, queues, ...) implement this interface yourself — the
@@ -39,13 +45,43 @@ export type I18nResolverResult = string | undefined | Promise<string | undefined
  * ```
  */
 export interface I18nResolver {
-	resolve(context: ExecutionContext): I18nResolverResult;
+	resolve(context: ExecutionContext, locales?: ReadonlySet<string>): I18nResolverResult;
 }
 
-/** First entry of an `Accept-Language`-style header value. */
-function firstLocaleTag(value: string): string | undefined {
-	const first = value.split(',')[0]?.split(';')[0]?.trim();
-	return first || undefined;
+/**
+ * Parses an `Accept-Language` header value into locale tags ordered by
+ * descending `q` weight (stable for equal weights). Entries with `q=0`,
+ * the `*` wildcard and malformed tags are skipped.
+ */
+function parseAcceptLanguage(value: string): string[] {
+	return value
+		.split(',')
+		.map(part => {
+			const [tag, ...params] = part.split(';').map(piece => piece.trim());
+			let q = 1;
+			for (const param of params) {
+				const [key, raw] = param.split('=');
+				if (key?.trim().toLowerCase() === 'q') {
+					const parsed = Number.parseFloat(raw ?? '');
+					if (!Number.isNaN(parsed)) q = parsed;
+				}
+			}
+			return { tag: tag ?? '', q };
+		})
+		.filter(entry => entry.tag !== '' && entry.tag !== '*' && entry.q > 0)
+		.sort((a, b) => b.q - a.q)
+		.map(entry => entry.tag);
+}
+
+/**
+ * Whether a requested tag can be served by the loaded locales — either
+ * exactly (`pt-BR` → `pt-BR/`) or via base language (`pt-BR` → `pt/`).
+ */
+function matchesLoadedLocale(tag: string, locales: ReadonlySet<string>): boolean {
+	const normalized = normalizeLocale(tag);
+	if (locales.has(normalized)) return true;
+	const base = baseLanguage(normalized);
+	return base !== undefined && locales.has(base);
 }
 
 function stringValue(value: unknown): string | undefined {
@@ -68,7 +104,11 @@ function httpRequest(context: ExecutionContext): Record<string, any> | undefined
  * Resolves locale from request headers. Accepts a single header name or
  * a list — the first header that yields a value wins, so order expresses
  * priority (e.g. a custom `x-selected-language` before `accept-language`).
- * Comma-separated values (`Accept-Language`) resolve to the first tag.
+ *
+ * `Accept-Language` values are fully parsed: entries are ordered by `q`
+ * weight and the first tag matching a loaded locale wins — so
+ * `fr-CH,fr;q=0.9,en;q=0.8` resolves to `en` when only `en`/`ru` exist.
+ * Without a `locales` set the first tag by weight is returned.
  */
 export class HeaderResolver implements I18nResolver {
 	private readonly names: string[];
@@ -77,15 +117,16 @@ export class HeaderResolver implements I18nResolver {
 		this.names = (Array.isArray(headers) ? headers : [headers]).map(name => name.toLowerCase());
 	}
 
-	resolve(context: ExecutionContext): string | undefined {
+	resolve(context: ExecutionContext, locales?: ReadonlySet<string>): string | undefined {
 		const request = httpRequest(context);
 		if (!request?.headers) return undefined;
 
 		for (const name of this.names) {
 			const value = stringValue(request.headers[name]);
-			if (value) {
-				const locale = firstLocaleTag(value);
-				if (locale) return locale;
+			if (!value) continue;
+
+			for (const tag of parseAcceptLanguage(value)) {
+				if (!locales || matchesLoadedLocale(tag, locales)) return tag;
 			}
 		}
 		return undefined;

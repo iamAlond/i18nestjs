@@ -3,6 +3,7 @@ import { firstValueFrom, of } from 'rxjs';
 import { I18nContext } from '../src/context';
 import { I18nInterceptor } from '../src/interceptor';
 import { I18nModuleOptions } from '../src/options';
+import { I18nService } from '../src/service';
 import {
 	CookieResolver,
 	HeaderResolver,
@@ -36,7 +37,10 @@ async function interceptorWith(
 		localesPath: '/unused',
 		resolvers
 	};
-	const interceptor = new I18nInterceptor(options);
+	const i18nStub = {
+		getLocales: () => ['en', 'ru', 'de', 'fr', 'es', 'it', 'pt-BR', 'seed', 'outer']
+	} as unknown as I18nService;
+	const interceptor = new I18nInterceptor(options, i18nStub);
 
 	let locale: string | undefined;
 	const next = {
@@ -94,6 +98,38 @@ describe('HeaderResolver', () => {
 
 	it('returns undefined when no header matches', () => {
 		expect(resolver.resolve(httpContext({ headers: {} }))).toBeUndefined();
+	});
+
+	describe('Accept-Language parsing', () => {
+		const acceptLanguage = (value: string) =>
+			httpContext({ headers: { 'accept-language': value } });
+		const locales = new Set(['en', 'ru', 'pt']);
+
+		it('orders tags by q weight', () => {
+			// ru has higher q despite being listed second
+			expect(resolver.resolve(acceptLanguage('en;q=0.5,ru;q=0.9'), locales)).toBe('ru');
+		});
+
+		it('skips tags without a matching loaded locale', () => {
+			// fr-* not loaded → falls to en
+			expect(resolver.resolve(acceptLanguage('fr-CH,fr;q=0.9,en;q=0.8'), locales)).toBe('en');
+		});
+
+		it('matches a regional tag against its base language dir', () => {
+			expect(resolver.resolve(acceptLanguage('pt-BR'), locales)).toBe('pt-BR');
+		});
+
+		it('skips q=0 entries and the wildcard', () => {
+			expect(resolver.resolve(acceptLanguage('ru;q=0,*;q=0.5,en;q=0.1'), locales)).toBe('en');
+		});
+
+		it('returns undefined when no tag matches a loaded locale', () => {
+			expect(resolver.resolve(acceptLanguage('fr,de'), locales)).toBeUndefined();
+		});
+
+		it('keeps header order for equal q values', () => {
+			expect(resolver.resolve(acceptLanguage('en,ru'), locales)).toBe('en');
+		});
 	});
 });
 

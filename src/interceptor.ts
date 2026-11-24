@@ -11,6 +11,7 @@ import { I18nContext } from './context';
 import { normalizeLocale } from './locales';
 import { MODULE_OPTIONS_TOKEN } from './module-definition';
 import { I18nModuleOptions } from './options';
+import { I18nService } from './service';
 
 /**
  * Global interceptor that resolves the request locale through the
@@ -27,7 +28,10 @@ import { I18nModuleOptions } from './options';
 export class I18nInterceptor implements NestInterceptor {
 	private readonly logger = new Logger(I18nInterceptor.name);
 
-	constructor(@Inject(MODULE_OPTIONS_TOKEN) private readonly options: I18nModuleOptions) {}
+	constructor(
+		@Inject(MODULE_OPTIONS_TOKEN) private readonly options: I18nModuleOptions,
+		private readonly i18n: I18nService
+	) {}
 
 	intercept(context: ExecutionContext, next: CallHandler): ReturnType<CallHandler['handle']> {
 		return from(this.resolveLocale(context)).pipe(
@@ -42,10 +46,12 @@ export class I18nInterceptor implements NestInterceptor {
 
 	/** Runs the resolver chain; returns the winning locale, if any. */
 	private async resolveLocale(context: ExecutionContext): Promise<string | undefined> {
+		const locales = new Set(this.i18n.getLocales());
+
 		for (const resolver of this.options.resolvers ?? []) {
 			let locale: string | undefined;
 			try {
-				locale = await resolver.resolve(context);
+				locale = await resolver.resolve(context, locales);
 			} catch (error) {
 				this.logger.warn(
 					`I18nResolver "${resolver.constructor?.name ?? 'anonymous'}" threw: ${
