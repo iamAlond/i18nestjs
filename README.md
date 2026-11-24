@@ -85,6 +85,16 @@ npx i18nestjs types -p ./src/i18n -f en
 
 The generated `.d.ts` is picked up by `tsc` automatically — no import needed. Regenerate whenever fallback-language files change (CI, Docker build, or a `prebuild` script).
 
+**Alternative — let the module do it:** set `typesPath` in the module options and types are generated on init and on every watched JSON change in development — no separate CLI process needed:
+
+```typescript
+I18nModule.forRoot({
+    fallbackLanguage: 'en',
+    localesPath: './src/i18n',
+    typesPath: 'src/i18n.types.d.ts'
+});
+```
+
 ### 4. Use it
 
 ```typescript
@@ -274,6 +284,7 @@ A resolver throwing an error is logged and skipped — the chain continues.
 | `watch`                  | `boolean`                 | `NODE_ENV !== 'production'` | Reload on file changes                                                                     |
 | `missingKey`             | `'return-key' \| 'throw'` | `'return-key'`              | Missing key behavior                                                                       |
 | `resolvers`              | `I18nResolver[]`          | `[]`                        | Per-request locale resolvers (see [Locale resolvers](#locale-resolvers))                   |
+| `typesPath`               | `string`                  | —                           | Generate `I18nTypes` declaration at this path on init/reload                                |
 | `logging`                | `boolean`                 | `false`                     | Informational logs                                                                         |
 
 `forRootAsync({ useFactory })` is supported; pass `{ isGlobal: true }` to make the module global.

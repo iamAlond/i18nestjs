@@ -258,6 +258,31 @@ describe('I18nService', () => {
 		removeFixture(baseDir);
 	});
 
+	it('generates the types file when typesPath is set', () => {
+		const typesFile = path.join(dir, 'generated', 'i18n.types.d.ts');
+		const svc = createService(dir, { typesPath: typesFile });
+		svc.onModuleInit();
+
+		const content = fs.readFileSync(typesFile, 'utf-8');
+		expect(content).toContain("declare module 'i18nestjs'");
+		expect(content).toContain('"hello"');
+		expect(content).toContain('"count": number');
+	});
+
+	it('regenerates types on reload', () => {
+		const typesFile = path.join(dir, 'i18n.types.d.ts');
+		const svc = createService(dir, { typesPath: typesFile });
+		svc.onModuleInit();
+		expect(fs.readFileSync(typesFile, 'utf-8')).not.toContain('brandNew');
+
+		fs.writeFileSync(
+			path.join(dir, 'en', 'common.json'),
+			JSON.stringify({ hello: 'Hello {name}!', brandNew: 'New {x}' })
+		);
+		svc.reload();
+		expect(fs.readFileSync(typesFile, 'utf-8')).toContain('"brandNew"');
+	});
+
 	it('reloads translations from disk', () => {
 		const svc = createService(dir);
 		svc.onModuleInit();

@@ -1,6 +1,9 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { MessageCompiler } from './compiler';
 import { I18nContext } from './context';
+import { generateTypesDeclaration } from './generate';
 import { JsonLoader } from './loader';
 import { MODULE_OPTIONS_TOKEN } from './module-definition';
 import { I18nModuleOptions } from './options';
@@ -56,6 +59,7 @@ export class I18nService implements OnModuleInit {
 
 		this.messages = loaded;
 		this.compiler.clear();
+		this.writeTypes(loaded.get(this.fallbackLocale));
 
 		if (this.options.logging) {
 			this.logger.log(
@@ -168,6 +172,32 @@ export class I18nService implements OnModuleInit {
 				this.options.defaultLocale ??
 				this.options.fallbackLanguage
 		);
+	}
+
+	/**
+	 * Writes the `I18nTypes` declaration when `typesPath` is configured.
+	 * Runs on init and on every reload — i.e. whenever watched JSON
+	 * files change in development.
+	 */
+	private writeTypes(fallback: Map<string, string> | undefined): void {
+		if (!this.options.typesPath) return;
+		if (!fallback) {
+			this.logger.warn(
+				`typesPath is set but fallback locale "${this.options.fallbackLanguage}" has no messages — skipping type generation`
+			);
+			return;
+		}
+
+		try {
+			const target = path.resolve(this.options.typesPath);
+			fs.mkdirSync(path.dirname(target), { recursive: true });
+			fs.writeFileSync(target, generateTypesDeclaration(fallback));
+			this.logger.log(`Types generated -> ${target}`);
+		} catch (error) {
+			this.logger.warn(
+				`Failed to write types to "${this.options.typesPath}": ${(error as Error).message}`
+			);
+		}
 	}
 
 	private handleMissingKey(key: string, locale: string): string {

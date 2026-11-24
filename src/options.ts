@@ -60,6 +60,13 @@ export interface I18nModuleOptions {
 	 * `CookieResolver`. Implement `I18nResolver` for non-HTTP frameworks.
 	 */
 	resolvers?: I18nResolver[];
+	/**
+	 * When set, the module generates the `I18nTypes` declaration file at
+	 * this path on init and on every reload (i.e. on every watched JSON
+	 * change in development). Same output as `i18nestjs types -o`.
+	 * Absolute or relative to the process working directory.
+	 */
+	typesPath?: string;
 	/** Enable informational logging. */
 	logging?: boolean;
 }
