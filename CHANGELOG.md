@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.3.0](https://github.com/iamAlond/i18nestjs/compare/2.2.0...2.3.0) (2026-11-25)
+
+### Features
+
+* **async-resolvers:** add support promise for resolve lang ([a3ed5c9](https://github.com/iamAlond/i18nestjs/commit/a3ed5c9b778ad750bac564606ad4cf52cb9238e7))
+* **cli:** add watch options for hmr ([d589b49](https://github.com/iamAlond/i18nestjs/commit/d589b490ef94f89ee4b0622705dae3b638229e40))
+* **headers-resolver:** add full support accept-language in headers resolver ([47b7adb](https://github.com/iamAlond/i18nestjs/commit/47b7adbbbfa93a2efe62b76e617a2dd641714199))
+* **options:** add in module generation types path option ([6fb427d](https://github.com/iamAlond/i18nestjs/commit/6fb427dc57237586b90fe5653a06a4a0694235ae))
+* **strict-select:** add strict types for select arguments ([691f8cd](https://github.com/iamAlond/i18nestjs/commit/691f8cd02489755108292f23ef47ebc0d54163e9))
+* **validation:** add validation message i18n function ([880ae89](https://github.com/iamAlond/i18nestjs/commit/880ae89481a0c3ca7e7c9d8be517b717c36c9f6f))
+
 ## [2.2.0](https://github.com/iamAlond/i18nestjs/compare/2.1.0...2.2.0) (2026-11-22)
 
 ### Features
