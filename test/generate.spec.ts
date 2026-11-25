@@ -74,6 +74,11 @@ describe('generateTypesDeclaration', () => {
 		expect(output).toContain('"gender": "male" | "female" | "other"');
 	});
 
+	it('ends with `export {}` so the declaration acts as module augmentation', () => {
+		const output = generateTypesDeclaration(new Map([['hello', 'Hello {name}!']]));
+		expect(output.trimEnd().endsWith('export {};')).toBe(true);
+	});
+
 	it('handles empty message sets', () => {
 		const output = generateTypesDeclaration(new Map());
 		expect(output).toContain('keys: never');

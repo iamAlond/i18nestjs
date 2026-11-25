@@ -106,5 +106,9 @@ ${argsBody ? `\t\t\t${argsBody.replace(/\n/g, '\n\t\t\t')}` : ''}
 		};
 	}
 }
+
+// Makes this file a module so the declare-module block above acts as
+// augmentation (module merging) instead of shadowing the package types under nodenext.
+export {};
 `;
 }
