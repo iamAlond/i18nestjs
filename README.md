@@ -165,44 +165,6 @@ I18nModule.forRoot({
 
 Locale tags are canonicalized: `de-at`, `de_AT`, `DE-at` all match `de-AT`. The plural/date formatting uses the locale of the message actually found.
 
-## Request locale context
-
-Locale precedence in `t()`:
-
-```
-options.locale → I18nContext → defaultLocale → fallbackLanguage
-```
-
-`I18nContext` (AsyncLocalStorage) binds a locale to the current async execution — set it once, and every `t()` call inside picks it up automatically:
-
-```typescript
-I18nContext.run('ru', () => {
-    i18n.t('hello', { name: 'Мир' }); // Russian, no locale option needed
-});
-
-I18nContext.enterWith('ru'); // for the rest of the current async context
-I18nContext.locale(); // 'ru' | undefined
-```
-
-This is the integration point for non-HTTP frameworks — bots, queues, cron jobs:
-
-```typescript
-bot.on('interactionCreate', interaction =>
-    I18nContext.run(interaction.locale, async () => {
-        await interaction.reply(i18n.t('welcome', { name: interaction.user.username }));
-    })
-);
-```
-
-For iterating over users with different locales (notifications, fan-out), use the scoped service instead — no context needed:
-
-```typescript
-for (const user of subscribers) {
-    const text = i18n.withLocale(user.locale).t('notifications.newPost', { title: post.title });
-    await send(user.id, text);
-}
-```
-
 ## Locale resolvers
 
 For HTTP (and any framework running on Nest's `ExecutionContext`), configure `resolvers` — a chain evaluated per request. The first resolver returning a non-empty locale wins and is bound to `I18nContext` automatically:
@@ -270,6 +232,27 @@ resolvers: [new NecordLocaleResolver(), new HeaderResolver('accept-language')];
 
 A resolver throwing an error is logged and skipped — the chain continues.
 
+## Class-validator integration
+
+`i18nMessage` gives you fully type-checked validation messages — key and ICU arguments are compile-time verified, and the message is translated in the request locale at validation time (pipes run inside the `I18nContext` set by resolvers):
+
+```typescript
+import { IsEmail, MinLength } from 'class-validator';
+import { i18nMessage } from 'i18nestjs';
+
+export class CreateUserDto {
+    @IsEmail({}, { message: i18nMessage('validation.invalidEmail') })
+    email!: string;
+
+    @MinLength(8, { message: i18nMessage('validation.minLength', { min: 8 }) })
+    password!: string;
+}
+```
+
+- Keys without ICU arguments take no second parameter; keys with arguments require the exact options object
+- class-validator placeholders work through ICU args: `i18nMessage('validation.required', { field: '$property' })`
+- Outside a Nest context (module not initialized) the raw key is returned
+
 ## Module options
 
 | Option                   | Type                      | Default                     | Description                                                                                |
@@ -304,6 +287,44 @@ i18n.reload()                   // manual reload from disk
 ```
 
 Reserved options (stripped before ICU formatting — don't use them as argument names): `locale`, `defaultValue`, `debug`.
+
+## Request locale context
+
+Locale precedence in `t()`:
+
+```
+options.locale → I18nContext → defaultLocale → fallbackLanguage
+```
+
+`I18nContext` (AsyncLocalStorage) binds a locale to the current async execution — set it once, and every `t()` call inside picks it up automatically:
+
+```typescript
+I18nContext.run('ru', () => {
+    i18n.t('hello', { name: 'Мир' }); // Russian, no locale option needed
+});
+
+I18nContext.enterWith('ru'); // for the rest of the current async context
+I18nContext.locale(); // 'ru' | undefined
+```
+
+This is the integration point for non-HTTP frameworks — bots, queues, cron jobs:
+
+```typescript
+bot.on('interactionCreate', interaction =>
+    I18nContext.run(interaction.locale, async () => {
+        await interaction.reply(i18n.t('welcome', { name: interaction.user.username }));
+    })
+);
+```
+
+For iterating over users with different locales (notifications, fan-out), use the scoped service instead — no context needed:
+
+```typescript
+for (const user of subscribers) {
+    const text = i18n.withLocale(user.locale).t('notifications.newPost', { title: post.title });
+    await send(user.id, text);
+}
+```
 
 ## CLI
 

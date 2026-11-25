@@ -19,6 +19,12 @@ import { I18nCallOptions, I18nCallParams, I18nKey, I18nReservedOptions, I18nValu
 
 @Injectable()
 export class I18nService implements OnModuleInit {
+	/**
+	 * Most recently initialized instance. Used by decorator-time helpers
+	 * like `i18nMessage` that run outside DI (class-validator messages).
+	 */
+	static active: I18nService | undefined;
+
 	private readonly logger = new Logger(I18nService.name);
 	private readonly compiler = new MessageCompiler((error, message, locale) => {
 		if (this.options.logging) {
@@ -42,6 +48,7 @@ export class I18nService implements OnModuleInit {
 	}
 
 	onModuleInit(): void {
+		I18nService.active = this;
 		this.reload();
 		this.loader.watch(() => this.reload());
 	}

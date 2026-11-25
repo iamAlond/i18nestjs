@@ -10,3 +10,4 @@ export * from './resolvers';
 export * from './scan';
 export * from './service';
 export * from './types';
+export * from './validator';
