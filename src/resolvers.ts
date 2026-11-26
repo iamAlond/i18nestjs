@@ -63,7 +63,8 @@ function parseAcceptLanguage(value: string): string[] {
 				const [key, raw] = param.split('=');
 				if (key?.trim().toLowerCase() === 'q') {
 					const parsed = Number.parseFloat(raw ?? '');
-					if (!Number.isNaN(parsed)) q = parsed;
+					// An unparsable q means the entry is unacceptable (RFC 9110)
+					q = Number.isNaN(parsed) ? 0 : parsed;
 				}
 			}
 			return { tag: tag ?? '', q };

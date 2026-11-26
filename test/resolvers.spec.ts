@@ -130,6 +130,10 @@ describe('HeaderResolver', () => {
 		it('keeps header order for equal q values', () => {
 			expect(resolver.resolve(acceptLanguage('en,ru'), locales)).toBe('en');
 		});
+
+		it('treats an unparsable q as unacceptable per RFC 9110', () => {
+			expect(resolver.resolve(acceptLanguage('en;q=abc,ru;q=0.5'), locales)).toBe('ru');
+		});
 	});
 });
 
