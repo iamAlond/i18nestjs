@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.3.1](https://github.com/iamAlond/i18nestjs/compare/2.3.0...2.3.1) (2026-11-26)
+
+### Bug Fixes
+
+* **types:** fix incorrect generation types declaration ([d0aeea1](https://github.com/iamAlond/i18nestjs/commit/d0aeea13cb2ccb7f12b9b49b844d688fd8fcf8cb))
+
 ## [2.3.0](https://github.com/iamAlond/i18nestjs/compare/2.2.0...2.3.0) (2026-11-25)
 
 ### Features
