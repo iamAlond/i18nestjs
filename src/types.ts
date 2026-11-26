@@ -29,7 +29,7 @@ type I18nArgsMap = I18nTypes extends { args: infer A } ? A : Record<string, any>
 
 type ArgsFor<K extends string> = K extends keyof I18nArgsMap
 	? I18nArgsMap[K]
-	: Record<string, never>;
+	: Record<never, never>;
 
 type IsAny<T> = 0 extends 1 & T ? true : false;
 

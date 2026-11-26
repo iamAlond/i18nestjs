@@ -48,20 +48,35 @@ describe('generated types declaration (nodenext consumer)', () => {
 				'',
 				'// Package exports must still resolve — the declaration must augment, not shadow.',
 				'void I18nModule;',
-				'void I18nService;',
+				'declare const i18n: I18nService;',
 				'',
 				"const key: I18nKey = 'hello';",
 				'void key;',
 				'',
 				'// @ts-expect-error — not a generated key',
 				"const bad: I18nKey = 'bogus';",
-				'void bad;'
+				'void bad;',
+				'',
+				'// Keys without ICU args: options stay optional and may carry reserved opts.',
+				"i18n.t('plain');",
+				"i18n.t('plain', { locale: 'ru' });",
+				"i18n.t('plain', {});",
+				'// @ts-expect-error — unknown argument on an arg-less key',
+				"i18n.t('plain', { name: 'x' });",
+				'',
+				'// Keys with ICU args: options required, reserved opts allowed.',
+				"i18n.t('hello', { name: 'x', locale: 'ru' });",
+				'// @ts-expect-error — options required when the key declares args',
+				"i18n.t('hello');",
+				'// @ts-expect-error — missing required ICU argument',
+				"i18n.t('hello', { locale: 'ru' });"
 			].join('\n')
 		);
 
 		const declaration = generateTypesDeclaration(
 			new Map([
 				['hello', 'Hello {name}!'],
+				['plain', 'Just text'],
 				['items', '{count, plural, one {# item} other {# items}}']
 			])
 		);
