@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.2](https://github.com/iamAlond/i18nestjs/compare/2.3.1...2.3.2) (2026-11-26)
+
+### Bug Fixes
+
+* **args:** fix incorrect required args ([ed8db03](https://github.com/iamAlond/i18nestjs/commit/ed8db03a79099317eb470264bd1497f26bfe331d))
+* **q-parser:** fix q factor (rfc 9110) ([90bd787](https://github.com/iamAlond/i18nestjs/commit/90bd787b456574b1da8a198893dabb002ad7bf15))
+
 ## [2.3.1](https://github.com/iamAlond/i18nestjs/compare/2.3.0...2.3.1) (2026-11-26)
 
 ### Bug Fixes
